@@ -1,0 +1,16 @@
+# services:
+  # redis-sentinel:
+  #   environment:
+  #     - REDIS_MASTER_HOST=redis-master
+  #   network_mode: !reset ""
+  # redis-sentinel-2:
+  #   environment:
+  #     - REDIS_MASTER_HOST=redis-master
+  #   network_mode: !reset ""
+  # redis-master:
+  #   network_mode: !reset ""
+  # redis-slave:
+  #   environment:
+  #     - REDIS_REPLICA_IP=redis-slave
+  #     - REDIS_MASTER_HOST=redis-master
+  #   network_mode: !reset ""

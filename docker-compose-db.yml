@@ -1,0 +1,69 @@
+
+services:
+  postgres_primary:
+    image: bitnami/postgresql:15
+    user: root
+    ports:
+      - 5432:5432
+    volumes:
+      - ./tmp/postgres/:/bitnami/postgresql/
+    environment:
+      - POSTGRESQL_PASSWORD=password
+      - POSTGRESQL_USERNAME=admin
+      - POSTGRESQL_DATABASE=db
+      - POSTGRESQL_REPLICATION_MODE=master
+      - POSTGRESQL_REPLICATION_USER=repl_user
+      - POSTGRESQL_REPLICATION_PASSWORD=repl_password
+      - POSTGRESQL_SHARED_PRELOAD_LIBRARIES=pg_stat_statements
+  postgres_replica1:
+    image: bitnami/postgresql:15
+    ports:
+      - 5431:5431
+    environment:
+      - POSTGRESQL_PASSWORD=password
+      - POSTGRESQL_MASTER_HOST=postgres_primary
+      - POSTGRESQL_REPLICATION_MODE=slave
+      - POSTGRESQL_REPLICATION_USER=repl_user
+      - POSTGRESQL_REPLICATION_PASSWORD=repl_password
+      - POSTGRESQL_MASTER_PORT_NUMBER=5432
+      - POSTGRESQL_PORT_NUMBER=5431
+    depends_on:
+      - postgres_primary
+  postgres_replica2:
+    image: bitnami/postgresql:15
+    ports:
+      - 5430:5430
+    environment:
+      - POSTGRESQL_PASSWORD=password
+      - POSTGRESQL_MASTER_HOST=postgres_primary
+      - POSTGRESQL_REPLICATION_MODE=slave
+      - POSTGRESQL_REPLICATION_USER=repl_user
+      - POSTGRESQL_REPLICATION_PASSWORD=repl_password
+      - POSTGRESQL_MASTER_PORT_NUMBER=5432
+      - POSTGRESQL_PORT_NUMBER=5430
+    depends_on:
+      - postgres_primary
+  pgadmin:
+    image: dpage/pgadmin4
+    ports:
+      - 8888:8888
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@admin.com
+      - PGADMIN_DEFAULT_PASSWORD=password
+      - PGADMIN_LISTEN_ADDRESS=0.0.0.0
+      - PGADMIN_LISTEN_PORT=8888
+  postgres_setup:
+    image: bitnami/postgresql:15
+    user: root
+    volumes:
+        - ./tmp/postgres/data:/var/lib/postgresql/data
+        - ./tmp/postgres/config:/etc/postgresql
+    entrypoint: [ "bash", "-c", "chmod 750 -R /var/lib/postgresql/data && chmod 750 -R /etc/postgresql"] 
+    depends_on:
+        - postgres_primary
+    init: true
+
+networks:
+  default:
+    driver: bridge
+    name: webapp

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Shell
+    x:Class="Gauniv.Client.AppShell"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+       xmlns:local="clr-namespace:Gauniv.Client.Pages"
+       xmlns:vm="clr-namespace:Gauniv.Client.ViewModel"
+       xmlns:service="clr-namespace:Gauniv.Client.Services"
+       Shell.FlyoutBehavior="Flyout"
+       Shell.NavBarIsVisible="false"
+       Title="Gauniv.Client"
+       BindingContext="{vm:MenuViewModel}"
+       x:DataType="vm:MenuViewModel">
+
+    <!--<MenuItem Text="Help"
+              IconImageSource="help.png"
+              Command="{Binding GoToProfileCommand}"/>-->
+    <FlyoutItem Title="Games"
+                Route="games">
+        <ShellContent ContentTemplate="{DataTemplate local:Index}" />
+    </FlyoutItem>
+
+    <FlyoutItem Title="Profile"
+                Route="profile">
+        <ShellContent ContentTemplate="{DataTemplate local:Profile}" />
+    </FlyoutItem>
+    <FlyoutItem Title="My Games"
+                Route="mygames">
+        <FlyoutItem.Style>
+            <Style TargetType="FlyoutItem">
+                <Setter Property="IsVisible"
+                        Value="false" />
+                <Style.Triggers>
+                    <DataTrigger TargetType="FlyoutItem"
+                                 Binding="{Binding IsConnected}"
+                                 Value="True">
+                        <Setter Property="IsVisible"
+                                Value="True" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+        </FlyoutItem.Style>
+        <ShellContent ContentTemplate="{DataTemplate local:MyGames}" />
+    </FlyoutItem>
+</Shell>

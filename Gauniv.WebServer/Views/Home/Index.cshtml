@@ -1,0 +1,23 @@
+﻿@model List<Gauniv.WebServer.Data.Game>
+@using X.PagedList.Mvc.Core;
+@using X.PagedList;
+@{
+    ViewData["Title"] = "View";
+}
+<link href="~/Content/PagedList.css" rel="stylesheet" type="text/css" />
+<h1>View</h1>
+
+<p>
+    <a asp-action="Create">Create New</a>
+</p>
+<table class="table">
+    <tbody>
+@foreach (var item in Model) {
+        <tr>
+            <td>
+                @Html.DisplayFor(modelItem => item.Id)
+            </td>
+        </tr>
+}
+    </tbody>
+</table>

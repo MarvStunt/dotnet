@@ -1,0 +1,24 @@
+{
+  "profiles": {
+    "Docker Compose": {
+      "commandName": "DockerCompose",
+      "commandVersion": "1.0",
+      "composeLaunchAction": "LaunchBrowser",
+      "composeLaunchServiceName": "gauniv.webserver",
+      "composeLaunchUrl": "{Scheme}://localhost:{ServicePort}",
+      "serviceActions": {
+        "gauniv.webserver": "StartDebugging",
+        "nginx": "StartWithoutDebugging",
+        "pgadmin": "StartWithoutDebugging",
+        "postgres_primary": "StartWithoutDebugging",
+        "postgres_replica1": "StartWithoutDebugging",
+        "postgres_replica2": "StartWithoutDebugging",
+        "postgres_setup": "StartWithoutDebugging",
+        "redis-master": "StartWithoutDebugging",
+        "redis-sentinel": "StartWithoutDebugging",
+        "redis-sentinel-2": "StartWithoutDebugging",
+        "redis-slave": "StartWithoutDebugging"
+      }
+    }
+  }
+}
