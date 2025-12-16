@@ -171,17 +171,6 @@ Cette API doit permettre de :
 
 La liste des jeux et la liste de mes jeux peuvent être factorisées en une seule API.
 
-## Options
-
-- Afficher la description avec un formatage : style de police, couleur, taille du texte, ...
-  - Penser au RTF, HTML, PDF, ...
-  - Dans un premier temps, gérez uniquement un format. Si vous avez fini, vous pouvez gérer plusieurs formats en même temps
-- Lire la description grâce à l'API [System.Speech.SpeechSynthesizer](https://learn.microsoft.com/en-us/dotnet/api/system.speech.synthesis.speechsynthesizer?view=net-9.0)
-  - Gérer la lecture / l'arrêt / la pause / la reprise
-  - Changer les boutons de contrôle en fonction de l'état de la lecture (comme un lecteur vidéo, ex : YouTube)
-  - Commencer à lire à partir de la sélection de l'utilisateur. L'utilisateur doit pouvoir faire un clic droit sur un mot et lancer la lecture à partir de ce mot
-
-
 # Serveur de jeu (Console)
 
 Le serveur est une application console qui coordonne tous les joueurs.
