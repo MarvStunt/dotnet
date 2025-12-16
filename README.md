@@ -10,8 +10,6 @@ Ajouter à celui-ci un jeu multijoueur comprenant le serveur ainsi que le jeu co
 
 Un web service de stockage et de gestion des jeux en ligne.
 
-Un logiciel sous Windows pour parcourir les jeux, en télécharger un et jouer à celui-ci.
-
 Un serveur de jeu orchestrant le fonctionnement d’au moins un jeu.
 
 Une application permettant de jouer à un jeu.
@@ -50,52 +48,6 @@ Le jeu devra se nommer Gauniv.Game.
 
 Pour des informations sur le fonctionnement d’Entity Framework : <https://learn.microsoft.com/en-us/ef/core/managing-schemas/migrations/?tabs=vs>
 
-## MAUI – Gesture
-
-Pour les éléments ne prenant pas en charge l’évènement click
-
-```xml
-<Button Clicked="" />
-```
-
-Vous pouvez utiliser les Gesture
-
-```xml
-<Label>
-    <Label.GestureRecognizers>
-        <TapGestureRecognizer Command="{Binding AppearingCommand}">
-    </Label.Behaviors>
-</Label>
-```
-
-## MAUI – Evènement
-
-Si vous avez besoin de transmettre un évènement depuis une View vers un ModelView vous pouvez utiliser un tag fournit par la librairie CommunityToolkit
-
-Ex :
-
-```xml
-<Label Focused="xxx">
-```
-
-Ajouter ce namespace :
-
-```xml
-<xxx 
-    xmlns:toolkit=http://schemas.microsoft.com/dotnet/2022/maui/toolkit>
-</xxx>
-```
-
-Vous pouvez alors utiliser le tag suivant :
-```xml
-<Label>
-    <Label.Behaviors>
-        <toolkit:EventToCommandBehavior EventName="Focused"
-            Command="{Binding FocusedCommand}"
-            x:TypeArguments="FocusedEventArgs" />
-    </Label.Behaviors>
-</Label>
-```
 ## DTO
 Pour renvoyer un objet différent de celui contenu dans votre base utiliser un DTO
  - Vous fait votre DTO à la main: https://learn.microsoft.com/en-us/aspnet/web-api/overview/data/using-web-api-with-entity-framework/part-5
@@ -218,29 +170,6 @@ Cette API doit permettre de :
   - `/game?offset=10&limit=15&category[]=3&category[]=2`
 
 La liste des jeux et la liste de mes jeux peuvent être factorisées en une seule API.
-
-
-# Application (WPF, MAUI, WINUI)
-
-L’application doit pouvoir permettre de :
-
-- Lister les jeux (vous pouvez définir la limite comme bon vous semble)
-  - Incluant la pagination (scroll infini, bouton ou autres)
-  - Filtrer par jeux possédés / catégorie / prix / …
-- Lister les jeux possédés par le joueur (vous pouvez définir la limite comme bon vous semble)
-  - Incluant la pagination (scroll infini, bouton ou autres)
-  - Filtrer par jeux possédés / catégorie / prix / …
-- Afficher les détails d’un jeu (nom, description, statuts, catégories)
-- Télécharger, supprimer et lancer un jeu
-  - L’utilisateur ne devra pas voir les boutons "jouer" et "supprimer" si le jeu n’a pas été téléchargé
-  - De même, le bouton "télécharger" ne sera pas visible si le jeu est déjà disponible
-- Jouer à un jeu
-  - Visualiser l’état du jeu (non téléchargé, prêt, en jeu, …)
-  - Contrôler le jeu (lancement, arrêt forcé, …)
-- Voir et mettre à jour son profil d’application (dossier d’installation, identifiants, …)
-
-L’ensemble des données concernant les jeux devra provenir du serveur.
-
 
 ## Options
 
