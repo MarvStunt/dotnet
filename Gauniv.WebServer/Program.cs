@@ -108,7 +108,11 @@ else
     app.UseHsts();
 }
 
-app.UseHttpsRedirection();
+// Only use HTTPS redirection when not in Docker (nginx handles HTTPS)
+if (app.Environment.EnvironmentName != "Development" || !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ASPNETCORE_HTTPS_PORTS")))
+{
+    app.UseHttpsRedirection();
+}
 app.UseRouting();
 
 app.UseAuthentication();

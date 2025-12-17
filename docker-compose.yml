@@ -11,16 +11,27 @@ services:
             dockerfile: Gauniv.WebServer/Dockerfile
         environment:
           - ASPNETCORE_ENVIRONMENT=Development
-          - ASPNETCORE_HTTP_PORTS=80
-          - ASPNETCORE_HTTPS_PORTS=443
+          - ASPNETCORE_URLS=http://+:80
           - ConnectionStrings:DefaultConnection=Server=postgres_primary;Port=5432;Database=db;Username=admin;Password=password
           # - ConnectionStrings:redis=redis-sentinel:26379,serviceName=mymaster,password=redis
         ports:
           - "80"
-          - "443"
-        volumes:
-          - ${APPDATA}/Microsoft/UserSecrets:/home/app/.microsoft/usersecrets:ro
-          - ${APPDATA}/ASP.NET/Https:/home/app/.aspnet/https:ro
+        depends_on:
+          - postgres_primary
+    gauniv.gameserver:
+        image: ${DOCKER_REGISTRY-}gaunivgameserver
+        build:
+            context: .
+            dockerfile: Gauniv.GameServer/Dockerfile
+        environment:
+          - ASPNETCORE_ENVIRONMENT=Development
+          - ASPNETCORE_URLS=http://0.0.0.0:5000
+          - ConnectionStrings:DefaultConnection=Server=postgres_primary;Port=5432;Database=db;Username=admin;Password=password
+        ports:
+          - "5000:5000"
+        depends_on:
+          - postgres_primary
+    
     nginx:
         image: nginx:latest
         volumes:
@@ -28,6 +39,7 @@ services:
             - ./certificate:/certificate:ro
         depends_on:
             - gauniv.webserver
+            - gauniv.gameserver
         ports:
             - "80:80"
             - "443:443"
