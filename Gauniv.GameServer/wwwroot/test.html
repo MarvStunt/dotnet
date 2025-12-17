@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎮 Gauniv GameServer Test Client</title>
+    <script src="https://cdn.jsdelivr.net/npm/@microsoft/signalr@latest/dist/browser/signalr.min.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        h1 { color: #667eea; margin-bottom: 10px; }
+        .status {
+            padding: 10px 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+        .status.connected { background: #d4edda; color: #155724; }
+        .status.disconnected { background: #f8d7da; color: #721c24; }
+        .status.connecting { background: #fff3cd; color: #856404; }
+        
+        .section {
+            background: #f8f9fa;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+        .section h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+        
+        input, button {
+            padding: 12px 20px;
+            margin: 5px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        input { width: 250px; }
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        button:active { transform: translateY(0); }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .log-container {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 8px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 13px;
+            margin-top: 20px;
+        }
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            border-radius: 3px;
+        }
+        .log-success { color: #4ec9b0; }
+        .log-error { color: #f48771; }
+        .log-info { color: #9cdcfe; }
+        .log-event { color: #dcdcaa; }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(4, 60px);
+            gap: 10px;
+            margin: 20px 0;
+            justify-content: center;
+        }
+        .grid-cell {
+            width: 60px;
+            height: 60px;
+            background: #667eea;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .grid-cell:hover { transform: scale(1.1); }
+        .grid-cell.highlight {
+            background: #ffd700;
+            transform: scale(1.2);
+            box-shadow: 0 0 20px #ffd700;
+        }
+        
+        .leaderboard {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .leaderboard-header {
+            background: #667eea;
+            color: white;
+            padding: 10px;
+            font-weight: bold;
+        }
+        .leaderboard-row {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+        }
+        .leaderboard-row:last-child { border-bottom: none; }
+        .leaderboard-row:nth-child(even) { background: #f8f9fa; }
+        
+        .inline-group {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .badge.mj { background: #ffd700; color: #333; }
+        .badge.player { background: #667eea; color: white; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 Gauniv GameServer Test Client</h1>
+        <p style="color: #666; margin-bottom: 20px;">Testez toutes les fonctionnalités du serveur de jeu</p>
+        
+        <div id="status" class="status connecting">
+            🔄 Connexion en cours...
+        </div>
+        
+        <!-- SECTION: Connexion -->
+        <div class="section">
+            <h2>🔌 Connexion</h2>
+            <div class="inline-group">
+                <input type="text" id="serverUrl" value="http://localhost:5000/gamehub" placeholder="URL du serveur">
+                <button onclick="connectToServer()">Se connecter</button>
+                <button onclick="disconnect()">Se déconnecter</button>
+            </div>
+        </div>
+        
+        <!-- SECTION: MJ (Game Master) -->
+        <div class="section">
+            <h2>👑 Mode MJ (Game Master) <span class="badge mj">MJ</span></h2>
+            <div class="inline-group">
+                <input type="text" id="mjName" placeholder="Nom du MJ" value="MasterJohn">
+                <input type="number" id="gridSize" placeholder="Taille grille" value="4" min="3" max="6">
+                <button onclick="createGame()">Créer une partie</button>
+            </div>
+            <div class="inline-group" style="margin-top: 10px;">
+                <input type="text" id="gameCodeMJ" placeholder="Code de la partie" readonly style="font-weight: bold; font-size: 18px;">
+                <button onclick="startGame()">Démarrer la partie</button>
+                <button onclick="startRound()">Lancer un round</button>
+                <button onclick="nextRound()">Round suivant</button>
+                <button onclick="stopGame()">Terminer la partie</button>
+            </div>
+        </div>
+        
+        <!-- SECTION: Joueur -->
+        <div class="section">
+            <h2>🎮 Mode Joueur <span class="badge player">PLAYER</span></h2>
+            <div class="inline-group">
+                <input type="text" id="playerName" placeholder="Nom du joueur" value="Player1">
+                <input type="text" id="gameCodePlayer" placeholder="Code de la partie">
+                <button onclick="joinGame()">Rejoindre</button>
+                <button onclick="getLeaderboard()">Voir le classement</button>
+            </div>
+            
+            <div style="margin-top: 20px;">
+                <h3 style="margin-bottom: 10px;">Pattern à reproduire : <span id="patternDisplay" style="color: #667eea; font-family: monospace;"></span></h3>
+                <div id="grid" class="grid"></div>
+                <div style="text-align: center; margin-top: 10px;">
+                    <button onclick="resetAttempt()">🔄 Réinitialiser</button>
+                    <button onclick="submitAttempt()">✅ Soumettre la tentative</button>
+                </div>
+                <p style="text-align: center; margin-top: 10px;">
+                    Votre tentative : <span id="attemptDisplay" style="color: #667eea; font-weight: bold; font-family: monospace;">[]</span>
+                </p>
+            </div>
+        </div>
+        
+        <!-- SECTION: Classement -->
+        <div class="section">
+            <h2>🏆 Classement en direct</h2>
+            <div id="leaderboard" class="leaderboard">
+                <div class="leaderboard-header">Aucune donnée</div>
+            </div>
+        </div>
+        
+        <!-- SECTION: Logs -->
+        <div class="section">
+            <h2>📋 Console de logs</h2>
+            <button onclick="clearLogs()">Effacer les logs</button>
+            <div id="logs" class="log-container">
+                <div class="log-entry log-info">🔵 En attente de connexion...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let connection = null;
+        let currentPattern = [];
+        let playerAttempt = [];
+        let startTime = 0;
+        let gameCode = "";
+
+        // Créer la grille
+        function initGrid() {
+            const grid = document.getElementById('grid');
+            grid.innerHTML = '';
+            const size = parseInt(document.getElementById('gridSize').value) || 4;
+            grid.style.gridTemplateColumns = `repeat(${size}, 60px)`;
+            
+            for (let i = 0; i < size * size; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'grid-cell';
+                cell.textContent = i;
+                cell.onclick = () => onCellClick(i);
+                grid.appendChild(cell);
+            }
+        }
+
+        // Connexion au serveur
+        async function connectToServer() {
+            const url = document.getElementById('serverUrl').value;
+            log('🔄 Connexion à ' + url + '...', 'info');
+            updateStatus('connecting');
+
+            connection = new signalR.HubConnectionBuilder()
+                .withUrl(url)
+                .configureLogging(signalR.LogLevel.Information)
+                .build();
+
+            // Événements serveur
+            connection.on("GameStarted", (gameId) => {
+                log(`▶️ Partie démarrée (ID: ${gameId})`, 'event');
+            });
+
+            connection.on("ShowPattern", (pattern, roundNumber) => {
+                log(`🔢 Round ${roundNumber} - Pattern: [${pattern.join(', ')}]`, 'event');
+                currentPattern = pattern;
+                playerAttempt = [];
+                startTime = Date.now();
+                document.getElementById('patternDisplay').textContent = JSON.stringify(pattern);
+                document.getElementById('attemptDisplay').textContent = '[]';
+                animatePattern(pattern);
+            });
+
+            connection.on("PlayerJoined", (playerName, playerId) => {
+                log(`👤 ${playerName} a rejoint la partie (ID: ${playerId})`, 'event');
+            });
+
+            connection.on("PlayerSubmitted", (playerName, isCorrect, pointsEarned, totalScore) => {
+                const icon = isCorrect ? '✓' : '✗';
+                const className = isCorrect ? 'success' : 'error';
+                log(`📝 ${playerName}: ${icon} (+${pointsEarned}pts, total: ${totalScore})`, className);
+            });
+
+            connection.on("RoundChanged", (newRound) => {
+                log(`📈 Passage au round ${newRound}`, 'event');
+            });
+
+            connection.on("GameEnded", (leaderboard) => {
+                log(`🏁 Partie terminée !`, 'event');
+                displayLeaderboard(leaderboard);
+            });
+
+            connection.on("PlayerDisconnected", (playerName) => {
+                log(`❌ ${playerName} s'est déconnecté`, 'error');
+            });
+
+            try {
+                await connection.start();
+                log('✅ Connecté au GameServer !', 'success');
+                updateStatus('connected');
+                initGrid();
+            } catch (err) {
+                log('❌ Erreur de connexion: ' + err, 'error');
+                updateStatus('disconnected');
+            }
+        }
+
+        async function disconnect() {
+            if (connection) {
+                await connection.stop();
+                log('🔌 Déconnecté', 'info');
+                updateStatus('disconnected');
+            }
+        }
+
+        // Fonctions MJ
+        async function createGame() {
+            if (!connection) return alert('Connectez-vous d\'abord !');
+            
+            const mjName = document.getElementById('mjName').value;
+            const gridSize = parseInt(document.getElementById('gridSize').value);
+            
+            try {
+                const code = await connection.invoke("CreateGame", mjName, gridSize);
+                gameCode = code;
+                document.getElementById('gameCodeMJ').value = code;
+                document.getElementById('gameCodePlayer').value = code;
+                log(`🎮 Partie créée avec le code: ${code}`, 'success');
+                initGrid();
+            } catch (err) {
+                log('❌ Erreur: ' + err, 'error');
+            }
+        }
+
+        async function startGame() {
+            if (!gameCode) return alert('Créez d\'abord une partie !');
+            try {
+                await connection.invoke("StartGame", gameCode);
+                log(`▶️ Partie ${gameCode} démarrée`, 'success');
+            } catch (err) {
+                log('❌ Erreur: ' + err, 'error');
+            }
+        }
+
+        async function startRound() {
+            if (!gameCode) return alert('Créez d\'abord une partie !');
+            try {
+                await connection.invoke("StartRound", gameCode);
+                log(`🔢 Round démarré`, 'success');
+            } catch (err) {
+                log('❌ Erreur: ' + err, 'error');
+            }
+        }
+
+        async function nextRound() {
+            if (!gameCode) return alert('Créez d\'abord une partie !');
+            try {
+                await connection.invoke("NextRound", gameCode);
+                log(`➡️ Passage au round suivant`, 'success');
+            } catch (err) {
+                log('❌ Erreur: ' + err, 'error');
+            }
+        }
+
+        async function stopGame() {
+            if (!gameCode) return alert('Créez d\'abord une partie !');
+            try {
+                await connection.invoke("StopGame", gameCode);
+                log(`🏁 Partie terminée`, 'success');
+            } catch (err) {
+                log('❌ Erreur: ' + err, 'error');
+            }
+        }
+
+        // Fonctions Joueur
+        async function joinGame() {
+            if (!connection) return alert('Connectez-vous d\'abord !');
+            
+            const playerName = document.getElementById('playerName').value;
+            const code = document.getElementById('gameCodePlayer').value;
+            
+            if (!code) return alert('Entrez un code de partie !');
+            
+            try {
+                const success = await connection.invoke("JoinGame", code, playerName);
+                if (success) {
+                    gameCode = code;
+                    document.getElementById('gameCodeMJ').value = code;
+                    log(`✅ Vous avez rejoint la partie ${code}`, 'success');
+                }
+            } catch (err) {
+                log('❌ Erreur: ' + err, 'error');
+            }
+        }
+
+        function onCellClick(index) {
+            if (!currentPattern.length) {
+                alert('Attendez qu\'un pattern soit affiché !');
+                return;
+            }
+            
+            playerAttempt.push(index);
+            document.getElementById('attemptDisplay').textContent = JSON.stringify(playerAttempt);
+            
+            // Highlight
+            const cells = document.querySelectorAll('.grid-cell');
+            cells[index].classList.add('highlight');
+            setTimeout(() => cells[index].classList.remove('highlight'), 300);
+            
+            log(`🖱️ Cellule ${index} cliquée`, 'info');
+        }
+
+        function resetAttempt() {
+            playerAttempt = [];
+            document.getElementById('attemptDisplay').textContent = '[]';
+            log('🔄 Tentative réinitialisée', 'info');
+        }
+
+        async function submitAttempt() {
+            if (!gameCode) return alert('Rejoignez d\'abord une partie !');
+            if (!playerAttempt.length) return alert('Cliquez sur des cellules d\'abord !');
+            
+            const reactionTime = Date.now() - startTime;
+            
+            try {
+                await connection.invoke("SubmitAttempt", gameCode, playerAttempt, reactionTime);
+                log(`📤 Tentative envoyée : ${JSON.stringify(playerAttempt)} (${reactionTime}ms)`, 'success');
+                playerAttempt = [];
+                document.getElementById('attemptDisplay').textContent = '[]';
+            } catch (err) {
+                log('❌ Erreur: ' + err, 'error');
+            }
+        }
+
+        async function getLeaderboard() {
+            if (!gameCode) return alert('Rejoignez d\'abord une partie !');
+            
+            try {
+                const leaderboard = await connection.invoke("GetLeaderboard", gameCode);
+                displayLeaderboard(leaderboard);
+                log(`🏆 Classement récupéré`, 'success');
+            } catch (err) {
+                log('❌ Erreur: ' + err, 'error');
+            }
+        }
+
+        // Animation du pattern
+        async function animatePattern(pattern) {
+            const cells = document.querySelectorAll('.grid-cell');
+            
+            for (let index of pattern) {
+                await new Promise(resolve => {
+                    cells[index].classList.add('highlight');
+                    setTimeout(() => {
+                        cells[index].classList.remove('highlight');
+                        resolve();
+                    }, 500);
+                });
+                await new Promise(resolve => setTimeout(resolve, 200));
+            }
+        }
+
+        // Affichage du classement
+        function displayLeaderboard(leaderboard) {
+            const div = document.getElementById('leaderboard');
+            
+            if (!leaderboard || leaderboard.length === 0) {
+                div.innerHTML = '<div class="leaderboard-header">Aucun joueur</div>';
+                return;
+            }
+            
+            let html = '<div class="leaderboard-header">🏆 Classement</div>';
+            leaderboard.forEach((player, index) => {
+                const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
+                const status = player.isConnected ? '🟢' : '🔴';
+                html += `
+                    <div class="leaderboard-row">
+                        <span>${medal} ${player.playerName} ${status}</span>
+                        <span style="font-weight: bold; color: #667eea;">${player.score} pts</span>
+                    </div>
+                `;
+            });
+            div.innerHTML = html;
+        }
+
+        // Logs
+        function log(message, type = 'info') {
+            const logs = document.getElementById('logs');
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logs.appendChild(entry);
+            logs.scrollTop = logs.scrollHeight;
+        }
+
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = '';
+        }
+
+        function updateStatus(state) {
+            const status = document.getElementById('status');
+            status.className = `status ${state}`;
+            
+            if (state === 'connected') {
+                status.textContent = '✅ Connecté au GameServer';
+            } else if (state === 'disconnected') {
+                status.textContent = '❌ Déconnecté';
+            } else {
+                status.textContent = '🔄 Connexion en cours...';
+            }
+        }
+
+        // Auto-connexion au chargement
+        window.onload = () => {
+            initGrid();
+            connectToServer();
+        };
+    </script>
+</body>
+</html>

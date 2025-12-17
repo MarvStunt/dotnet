@@ -1,0 +1,161 @@
+[gd_scene load_steps=4 format=3 uid="uid://c5et0hhwdvcf3"]
+
+[ext_resource type="Script" uid="uid://iolhhl58i55e" path="res://Game.cs" id="1_u44n3"]
+[ext_resource type="Script" uid="uid://gjllg4w7jgew" path="res://ColorButton.cs" id="2_sb48q"]
+[ext_resource type="Script" uid="uid://bftek112hkgb6" path="res://ResultPanel.cs" id="3_t88pq"]
+
+[node name="Game" type="Control"]
+layout_mode = 3
+anchor_right = 0.708
+anchor_bottom = 0.65000004
+offset_left = 602.0
+offset_right = 224.79999
+offset_bottom = 78.49997
+script = ExtResource("1_u44n3")
+
+[node name="Main" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = -1
+anchor_right = 1.1910001
+anchor_bottom = 1.1420001
+offset_right = -0.032104492
+offset_bottom = -0.016052246
+
+[node name="Status" type="HBoxContainer" parent="Main"]
+layout_mode = 2
+
+[node name="RoleLabel" type="Label" parent="Main/Status"]
+layout_mode = 2
+text = "Rôle: Master"
+
+[node name="StateLabel" type="Label" parent="Main/Status"]
+layout_mode = 2
+text = "État: En attente"
+
+[node name="DisconnectButton" type="Button" parent="Main/Status"]
+layout_mode = 2
+text = "DisconnectButton"
+
+[node name="VSeparator" type="VSeparator" parent="Main"]
+layout_mode = 2
+
+[node name="Game Area" type="HBoxContainer" parent="Main"]
+layout_mode = 2
+
+[node name="Master Section" type="VBoxContainer" parent="Main/Game Area"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Main/Game Area/Master Section"]
+layout_mode = 2
+text = "Maître du jeu"
+
+[node name="Buttons" type="VBoxContainer" parent="Main/Game Area/Master Section"]
+layout_mode = 2
+
+[node name="ColorButton1" type="Button" parent="Main/Game Area/Master Section/Buttons"]
+layout_mode = 2
+text = "1"
+script = ExtResource("2_sb48q")
+
+[node name="ColorButton2" type="Button" parent="Main/Game Area/Master Section/Buttons"]
+layout_mode = 2
+text = "2"
+script = ExtResource("2_sb48q")
+ColorIndex = 1
+
+[node name="ColorButton3" type="Button" parent="Main/Game Area/Master Section/Buttons"]
+layout_mode = 2
+text = "3"
+script = ExtResource("2_sb48q")
+ColorIndex = 2
+
+[node name="ColorButton4" type="Button" parent="Main/Game Area/Master Section/Buttons"]
+layout_mode = 2
+text = "4"
+script = ExtResource("2_sb48q")
+ColorIndex = 3
+
+[node name="SendSequenceButton" type="Button" parent="Main/Game Area/Master Section"]
+layout_mode = 2
+text = "SendSequenceButton"
+
+[node name="SequenceLabel" type="Label" parent="Main/Game Area/Master Section"]
+layout_mode = 2
+text = "SequenceLabel"
+
+[node name="Player Section" type="VBoxContainer" parent="Main/Game Area"]
+layout_mode = 2
+
+[node name="Joueur" type="Label" parent="Main/Game Area/Player Section"]
+layout_mode = 2
+text = "Joueur"
+
+[node name="Buttons" type="VBoxContainer" parent="Main/Game Area/Player Section"]
+layout_mode = 2
+
+[node name="ColorButton1" type="Button" parent="Main/Game Area/Player Section/Buttons"]
+layout_mode = 2
+text = "1"
+script = ExtResource("2_sb48q")
+
+[node name="ColorButton2" type="Button" parent="Main/Game Area/Player Section/Buttons"]
+layout_mode = 2
+text = "2"
+script = ExtResource("2_sb48q")
+ColorIndex = 1
+
+[node name="ColorButton3" type="Button" parent="Main/Game Area/Player Section/Buttons"]
+layout_mode = 2
+text = "3"
+script = ExtResource("2_sb48q")
+ColorIndex = 2
+
+[node name="ColorButton4" type="Button" parent="Main/Game Area/Player Section/Buttons"]
+layout_mode = 2
+text = "4"
+script = ExtResource("2_sb48q")
+ColorIndex = 3
+
+[node name="SubmitButton" type="Button" parent="Main/Game Area/Player Section"]
+layout_mode = 2
+text = "SubmitButton"
+
+[node name="FeedbackLabel" type="Label" parent="Main/Game Area/Player Section"]
+layout_mode = 2
+text = "FeedbackLabel"
+
+[node name="VSeparator2" type="VSeparator" parent="Main"]
+layout_mode = 2
+
+[node name="ResultPanel" type="Panel" parent="Main"]
+visible = false
+layout_mode = 2
+script = ExtResource("3_t88pq")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Main/ResultPanel"]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="TitleLabel" type="Label" parent="Main/ResultPanel/VBoxContainer"]
+layout_mode = 2
+text = "Vous avez gagné!"
+
+[node name="MessageLabel" type="Label" parent="Main/ResultPanel/VBoxContainer"]
+layout_mode = 2
+text = "Details"
+
+[node name="HSeparator" type="HSeparator" parent="Main/ResultPanel/VBoxContainer"]
+layout_mode = 2
+
+[node name="Buttons" type="HBoxContainer" parent="Main/ResultPanel/VBoxContainer"]
+layout_mode = 2
+
+[node name="RetryButton" type="Button" parent="Main/ResultPanel/VBoxContainer/Buttons"]
+layout_mode = 2
+text = "RetryButton
+"
+
+[node name="BackToHubButton" type="Button" parent="Main/ResultPanel/VBoxContainer/Buttons"]
+layout_mode = 2
+text = "BackToHubButton"

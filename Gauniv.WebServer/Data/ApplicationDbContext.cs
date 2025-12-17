@@ -39,5 +39,14 @@ namespace Gauniv.WebServer.Data
         {
         }
         public DbSet<Game> Games { get; set; }
+        public DbSet<GameSession> GameSessions { get; set; }
+        public DbSet<GamePlayer> GamePlayers { get; set; }
+        public DbSet<GameRound> GameRounds { get; set; }
+        public DbSet<PlayerAttempt> PlayerAttempts { get; set; }
+
+        internal async Task SaveChangesAsync()
+        {
+            throw new NotImplementedException();
+        }
     }
 }
