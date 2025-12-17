@@ -84,6 +84,8 @@ public partial class Hub : Control
 
 			statusLabel.Text = "⏳ Creating game...";
 			networkManager.CreateGame(playerName);
+			networkManager.PlayerName = playerName;
+			networkManager.PlayerRole = "master";
 
 			// Wait a bit for response
 			await Task.Delay(2000);
@@ -144,6 +146,8 @@ public partial class Hub : Control
 
 			statusLabel.Text = "⏳ Joining game...";
 			networkManager.JoinGame(gameId, playerName);
+			networkManager.PlayerName = playerName;
+			networkManager.PlayerRole = "player";
 
 			// Wait for response
 			await Task.Delay(2000);

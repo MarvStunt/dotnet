@@ -1,8 +1,8 @@
 [gd_scene load_steps=4 format=3 uid="uid://c5et0hhwdvcf3"]
 
-[ext_resource type="Script" uid="uid://iolhhl58i55e" path="res://Game.cs" id="1_u44n3"]
-[ext_resource type="Script" uid="uid://gjllg4w7jgew" path="res://ColorButton.cs" id="2_sb48q"]
-[ext_resource type="Script" uid="uid://bftek112hkgb6" path="res://ResultPanel.cs" id="3_t88pq"]
+[ext_resource type="Script" uid="uid://c2kypcf6pa8x1" path="res://Game.cs" id="1_u44n3"]
+[ext_resource type="Script" uid="uid://djnf4kfsvj3he" path="res://ColorButton.cs" id="2_sb48q"]
+[ext_resource type="Script" uid="uid://02xv28gllxij" path="res://ResultPanel.cs" id="3_t88pq"]
 
 [node name="Game" type="Control"]
 layout_mode = 3
@@ -35,6 +35,10 @@ text = "État: En attente"
 [node name="DisconnectButton" type="Button" parent="Main/Status"]
 layout_mode = 2
 text = "DisconnectButton"
+
+[node name="PlayerName" type="Label" parent="Main/Status"]
+layout_mode = 2
+text = "ttiuiririr"
 
 [node name="VSeparator" type="VSeparator" parent="Main"]
 layout_mode = 2

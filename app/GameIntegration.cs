@@ -9,144 +9,141 @@ using System.Threading.Tasks;
 /// </summary>
 public partial class GameIntegration : Node2D
 {
-	private Game gameLogic;
-	private ResultPanel resultPanel;
-	private NetworkManager networkManager;
-	private Label statusLabel;
+    private Game gameLogic;
+    private ResultPanel resultPanel;
+    private NetworkManager networkManager;
+    private Label statusLabel;
 
-	public override void _Ready()
-	{
-		// Get references
-		gameLogic = GetNode<Game>(".");
-		
-		try
-		{
-			resultPanel = GetNode<ResultPanel>("ResultPanel");
-		}
-		catch
-		{
-			// If ResultPanel script is not attached, get as Panel
-			var panelNode = GetNode<Panel>("ResultPanel");
-			if (panelNode is ResultPanel rp)
-				resultPanel = rp;
-			else
-				GD.PrintErr("ResultPanel not found or script not attached");
-		}
+    public override void _Ready()
+    {
+        // Get references
+        gameLogic = GetNode<Game>(".");
 
-		networkManager = GetTree().Root.HasNode("NetworkManager")
-			? GetTree().Root.GetNode<NetworkManager>("NetworkManager")
-			: null;
+        try
+        {
+            resultPanel = GetNode<ResultPanel>("ResultPanel");
+        }
+        catch
+        {
+            // If ResultPanel script is not attached, get as Panel
+            var panelNode = GetNode<Panel>("ResultPanel");
+            if (panelNode is ResultPanel rp)
+                resultPanel = rp;
+            else
+                GD.PrintErr("ResultPanel not found or script not attached");
+        }
 
-		try
-		{
-			statusLabel = GetNode<Label>("StatusLabel");
-		}
-		catch
-		{
-			// Optional status label
-		}
+        networkManager = GetTree().Root.HasNode("NetworkManager")
+            ? GetTree().Root.GetNode<NetworkManager>("NetworkManager")
+            : null;
 
-		// Connect network signals if in network mode
-		if (networkManager != null && networkManager.IsConnected)
-		{
-			ConnectNetworkSignals();
-		}
+        try
+        {
+            statusLabel = GetNode<Label>("StatusLabel");
+        }
+        catch
+        {
+            // Optional status label
+        }
 
-		GD.Print("Game Integration initialized");
-	}
+        // Connect network signals if in network mode
+        if (networkManager != null && networkManager.IsConnected)
+        {
+            ConnectNetworkSignals();
+        }
 
-	private void ConnectNetworkSignals()
-	{
-		// Use weak reference to avoid memory leaks
-		networkManager.Connect(
-			NetworkManager.SignalName.SequenceReceived,
-			Callable.From<int[]>(OnSequenceReceived)
-		);
+        GD.Print("Game Integration initialized");
+    }
 
-		networkManager.Connect(
-			NetworkManager.SignalName.ValidationResult,
-			Callable.From<bool, string>(OnValidationResult)
-		);
+    private void ConnectNetworkSignals()
+    {
+        // Use weak reference to avoid memory leaks
+        networkManager.Connect(
+            NetworkManager.SignalName.ShowPattern,
+            Callable.From<int[], int>(OnShowPattern)
+        );
 
-		networkManager.Connect(
-			NetworkManager.SignalName.GameEnded,
-			Callable.From<bool, string>(OnGameEnded)
-		);
+        networkManager.Connect(
+            NetworkManager.SignalName.PlayerSubmitted,
+            Callable.From<string, bool, int, int>(OnPlayerSubmitted)
+        );
 
-		GD.Print("Network signals connected");
-	}
+        networkManager.Connect(
+            NetworkManager.SignalName.GameEnded,
+            Callable.From<string>(OnGameEnded)
+        );
 
-	/// <summary>
-	/// Called when sequence is received from server (for players)
-	/// </summary>
-	private void OnSequenceReceived(int[] sequence)
-	{
-		GD.Print($"Integration: Sequence received - {string.Join(",", sequence)}");
-		gameLogic.ReceiveSequence(sequence);
-	}
+        GD.Print("Network signals connected");
+    }
 
-	/// <summary>
-	/// Called when server validates player answer
-	/// </summary>
-	private void OnValidationResult(bool isCorrect, string message)
-	{
-		GD.Print($"Integration: Validation result - {isCorrect} - {message}");
-		gameLogic.OnValidationResult(isCorrect, message);
+    /// <summary>
+    /// Called when pattern is received from server (for players)
+    /// </summary>
+    private void OnShowPattern(int[] pattern, int roundNumber)
+    {
+        GD.Print($"Integration: Pattern received - Round {roundNumber}: {string.Join(",", pattern)}");
+        gameLogic.ReceiveSequence(pattern);
+    }
 
-		if (!isCorrect && resultPanel != null)
-		{
-			resultPanel.ShowLost(message);
-		}
-	}
+    /// <summary>
+    /// Called when server sends player submission result
+    /// </summary>
+    private void OnPlayerSubmitted(string playerName, bool isCorrect, int pointsEarned, int totalScore)
+    {
+        GD.Print($"Integration: {playerName} submitted - {isCorrect} (+{pointsEarned}pts, total: {totalScore})");
+        gameLogic.OnPlayerSubmitted(playerName, isCorrect, pointsEarned, totalScore);
 
-	/// <summary>
-	/// Called when game ends
-	/// </summary>
-	private void OnGameEnded(bool won, string reason)
-	{
-		GD.Print($"Integration: Game ended - Won: {won}, Reason: {reason}");
-		gameLogic.OnGameEnded(won, reason);
+        if (!isCorrect && resultPanel != null)
+        {
+            resultPanel.ShowLost($"{playerName} got it wrong!");
+        }
+    }
 
-		// Show result panel
-		if (resultPanel != null)
-		{
-			if (won)
-				resultPanel.ShowWon(reason);
-			else
-				resultPanel.ShowLost(reason);
-		}
-	}
+    /// <summary>
+    /// Called when game ends
+    /// </summary>
+    private void OnGameEnded(string leaderboardJson)
+    {
+        GD.Print($"Integration: Game ended - Leaderboard: {leaderboardJson}");
+        gameLogic.OnGameEnded(leaderboardJson);
 
-	/// <summary>
-	/// Helper method to get game mode info
-	/// </summary>
-	public void PrintGameInfo()
-	{
-		if (networkManager == null)
-		{
-			GD.Print("=== GAME INFO ===");
-			GD.Print("Mode: LOCAL");
-			return;
-		}
+        // Show result panel with leaderboard
+        if (resultPanel != null)
+        {
+            resultPanel.ShowWon($"Game finished!\nLeaderboard: {leaderboardJson}");
+        }
+    }
 
-		GD.Print("=== GAME INFO ===");
-		GD.Print($"Mode: NETWORK");
-		GD.Print($"Connected: {networkManager.IsConnected}");
-		GD.Print($"GameID: {networkManager.GameId}");
-		GD.Print($"PlayerID: {networkManager.PlayerId}");
-		GD.Print($"Role: {networkManager.PlayerRole}");
-		GD.Print($"==================");
-	}
+    /// <summary>
+    /// Helper method to get game mode info
+    /// </summary>
+    public void PrintGameInfo()
+    {
+        if (networkManager == null)
+        {
+            GD.Print("=== GAME INFO ===");
+            GD.Print("Mode: LOCAL");
+            return;
+        }
 
-	// Call this from debugger: PrintGameInfo()
-	public override void _Input(InputEvent @event)
-	{
-		if (@event is InputEventKey keyEvent)
-		{
-			if (keyEvent.Pressed && keyEvent.Keycode == Key.F9)
-			{
-				PrintGameInfo();
-			}
-		}
-	}
+        GD.Print("=== GAME INFO ===");
+        GD.Print($"Mode: NETWORK");
+        GD.Print($"Connected: {networkManager.IsConnected}");
+        GD.Print($"GameID: {networkManager.GameId}");
+        GD.Print($"PlayerID: {networkManager.PlayerId}");
+        GD.Print($"Role: {networkManager.PlayerRole}");
+        GD.Print($"==================");
+    }
+
+    // Call this from debugger: PrintGameInfo()
+    public override void _Input(InputEvent @event)
+    {
+        if (@event is InputEventKey keyEvent)
+        {
+            if (keyEvent.Pressed && keyEvent.Keycode == Key.F9)
+            {
+                PrintGameInfo();
+            }
+        }
+    }
 }

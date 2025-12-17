@@ -9,369 +9,462 @@ using System.Threading.Tasks;
 /// </summary>
 public partial class NetworkManager : Control
 {
-	private WebSocketPeer webSocketPeer;
-	// TODO: Adapter cette URL selon votre serveur
-	// Exemples: "ws://localhost:8080", "ws://votre-serveur.com:8080"
-	private string serverUrl = "ws://localhost:8080";
-	private bool isConnected = false;
-	private string playerId;
-	private string gameId;
-	private string playerRole; // "master" or "player"
+    private WebSocketPeer webSocketPeer;
+    // TODO: Adapter cette URL selon votre serveur
+    // Exemples: "ws://localhost:8080", "ws://votre-serveur.com:8080"
+    private string serverUrl = "ws://localhost:5000/gamehub";
+    private bool isConnected = false;
+    private string playerId;
+    private string gameId;
+    private string playerRole; // "master" or "player"
+    private string playerName;
 
-	// Signaux
-	[Signal]
-	public delegate void ConnectedEventHandler();
+    // Signaux
+    [Signal]
+    public delegate void ConnectedEventHandler();
 
-	[Signal]
-	public delegate void DisconnectedEventHandler();
+    [Signal]
+    public delegate void DisconnectedEventHandler();
 
-	[Signal]
-	public delegate void ConnectionFailedEventHandler();
+    [Signal]
+    public delegate void ConnectionFailedEventHandler();
 
-	[Signal]
-	public delegate void MessageReceivedEventHandler(string message);
+    [Signal]
+    public delegate void GameCreatedEventHandler(string gameCode);
 
-	[Signal]
-	public delegate void GameStartedEventHandler(string gameId, string role);
+    [Signal]
+    public delegate void GameStartedEventHandler(int sessionId);
 
-	[Signal]
-	public delegate void SequenceReceivedEventHandler(int[] sequence);
+    [Signal]
+    public delegate void ShowPatternEventHandler(int[] pattern, int roundNumber);
 
-	[Signal]
-	public delegate void ValidationResultEventHandler(bool isCorrect, string message);
+    [Signal]
+    public delegate void RoundChangedEventHandler(int roundNumber);
 
-	[Signal]
-	public delegate void GameEndedEventHandler(bool won, string reason);
+    [Signal]
+    public delegate void GameEndedEventHandler(string leaderboardJson);
 
-	[Signal]
-	public delegate void PlayerJoinedEventHandler(string playerName, int totalPlayers);
+    [Signal]
+    public delegate void PlayerJoinedEventHandler(string playerName, int playerId);
 
-	public override void _Ready()
-	{
-		playerId = Guid.NewGuid().ToString();
-		SetProcessInternal(true);
-	}
+    [Signal]
+    public delegate void PlayerDisconnectedEventHandler(string playerName);
 
-	public override void _Process(double delta)
-	{
-		if (isConnected && webSocketPeer != null)
-		{
-			webSocketPeer.Poll();
-			int state = (int)webSocketPeer.GetReadyState();
+    [Signal]
+    public delegate void PlayerSubmittedEventHandler(string playerName, bool isCorrect, int pointsEarned, int totalScore);
 
-			switch (state)
-			{
-				case (int)WebSocketPeer.State.Open:
-					HandleMessages();
-					break;
-				case (int)WebSocketPeer.State.Closed:
-					isConnected = false;
-					EmitSignal(SignalName.Disconnected);
-					GD.PrintErr("WebSocket disconnected");
-					break;
-			}
-		}
-	}
+    public override void _Ready()
+    {
+        playerId = Guid.NewGuid().ToString();
+        SetProcessInternal(true);
+    }
 
-	/// <summary>
-	/// Connect to the server
-	/// </summary>
-	public async Task<bool> ConnectToServer(string url = null)
-	{
-		if (url != null)
-			serverUrl = url;
+    public override void _Process(double delta)
+    {
+        if (isConnected && webSocketPeer != null)
+        {
+            webSocketPeer.Poll();
+            int state = (int)webSocketPeer.GetReadyState();
 
-		GD.Print($"🔗 Attempting to connect to {serverUrl}...");
+            switch (state)
+            {
+                case (int)WebSocketPeer.State.Open:
+                    HandleMessages();
+                    break;
+                case (int)WebSocketPeer.State.Closed:
+                    isConnected = false;
+                    EmitSignal(SignalName.Disconnected);
+                    GD.PrintErr("WebSocket disconnected");
+                    break;
+            }
+        }
+    }
 
-		if (webSocketPeer != null)
-			webSocketPeer.Close();
+    /// <summary>
+    /// Connect to the server
+    /// </summary>
+    public async Task<bool> ConnectToServer(string url = null)
+    {
+        if (url != null)
+            serverUrl = url;
 
-		webSocketPeer = new WebSocketPeer();
-		Error error = webSocketPeer.ConnectToUrl(serverUrl);
+        GD.Print($"🔗 Attempting to connect to {serverUrl}...");
 
-		if (error != Error.Ok)
-		{
-			GD.PrintErr($"❌ Failed to connect: {error}");
-			EmitSignal(SignalName.ConnectionFailed);
-			return false;
-		}
+        if (webSocketPeer != null)
+            webSocketPeer.Close();
 
-		GD.Print($"🔄 Waiting for WebSocket handshake...");
+        webSocketPeer = new WebSocketPeer();
+        Error error = webSocketPeer.ConnectToUrl(serverUrl);
 
-		// Wait longer for connection to establish
-		for (int i = 0; i < 20; i++)
-		{
-			await Task.Delay(100);
-			webSocketPeer.Poll();
+        if (error != Error.Ok)
+        {
+            GD.PrintErr($"❌ Failed to connect: {error}");
+            EmitSignal(SignalName.ConnectionFailed);
+            return false;
+        }
 
-			int state = (int)webSocketPeer.GetReadyState();
-			GD.Print($"   Attempt {i+1}/20 - State: {state} (Connecting=0, Open=1, Closing=2, Closed=3)");
+        GD.Print($"🔄 Waiting for WebSocket handshake...");
 
-			if (state == (int)WebSocketPeer.State.Open)
-			{
-				isConnected = true;
-				EmitSignal(SignalName.Connected);
-				GD.Print("✅ Connected to server");
-				return true;
-			}
-		}
+        // Wait longer for connection to establish
+        for (int i = 0; i < 20; i++)
+        {
+            await Task.Delay(100);
+            webSocketPeer.Poll();
 
-		GD.PrintErr($"❌ Connection timeout after 2 seconds");
-		EmitSignal(SignalName.ConnectionFailed);
-		return false;
-	}
+            int state = (int)webSocketPeer.GetReadyState();
+            GD.Print($"   Attempt {i + 1}/20 - State: {state} (Connecting=0, Open=1, Closing=2, Closed=3)");
 
-	/// <summary>
-	/// Handle incoming messages
-	/// </summary>
-	private void HandleMessages()
-	{
-		while (webSocketPeer.GetAvailablePacketCount() > 0)
-		{
-			byte[] data = webSocketPeer.GetPacket();
-			string json = System.Text.Encoding.UTF8.GetString(data);
-			GD.Print($"Received: {json}");
+            if (state == (int)WebSocketPeer.State.Open)
+            {
+                // Envoyer le handshake SignalR
+                string handshake = "{\"protocol\":\"json\",\"version\":1}\u001E";
+                webSocketPeer.SendText(handshake);
+                GD.Print("🤝 SignalR handshake sent");
 
-			try
-			{
-				var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-				var message = JsonSerializer.Deserialize<Dictionary<string, object>>(json, options);
+                isConnected = true;
+                EmitSignal(SignalName.Connected);
+                GD.Print("✅ Connected to server");
+                return true;
+            }
+        }
 
-				if (message == null)
-					return;
+        GD.PrintErr($"❌ Connection timeout after 2 seconds");
+        EmitSignal(SignalName.ConnectionFailed);
+        return false;
+    }
 
-				string type = message.ContainsKey("type") ? message["type"].ToString() : "";
+    /// <summary>
+    /// Handle incoming messages
+    /// </summary>
+    private void HandleMessages()
+    {
+        while (webSocketPeer.GetAvailablePacketCount() > 0)
+        {
+            byte[] data = webSocketPeer.GetPacket();
+            string text = System.Text.Encoding.UTF8.GetString(data);
+            string[] messages = text.Split(new[] { '\u001E' }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (string json in messages)
+            {
+                if (string.IsNullOrWhiteSpace(json))
+                    continue;
 
-				switch (type)
-				{
-					case "game_started":
-						// TODO: Adapter selon la réponse réelle de votre serveur
-						HandleGameStarted(message);
-						break;
-					case "player_joined":
-						HandlePlayerJoined(message);
-						break;
-					case "sequence":
-						// TODO: Adapter selon la réponse réelle de votre serveur
-						HandleSequenceReceived(message);
-						break;
-					case "validation_result":
-						// TODO: Adapter selon la réponse réelle de votre serveur
-						HandleValidationResult(message);
-						break;
-					case "game_ended":
-						// TODO: Adapter selon la réponse réelle de votre serveur
-						HandleGameEnded(message);
-						break;
-					default:
-						// TODO: Gérer les autres types de messages selon votre serveur
-						GD.Print($"Unknown message type: {type}");
-						break;
-				}
-			}
-			catch (Exception ex)
-			{
-				GD.PrintErr($"Error parsing message: {ex.Message}");
-			}
-		}
-	}
+                GD.Print($"Received: {json}");
 
-	private void HandleGameStarted(Dictionary<string, object> message)
-	{
-		gameId = message.ContainsKey("game_id") ? message["game_id"].ToString() : "";
-		playerRole = message.ContainsKey("role") ? message["role"].ToString() : "player";
+                try
+                {
+                    var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                    var message = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json, options);
 
-		EmitSignal(SignalName.GameStarted, gameId, playerRole);
-		GD.Print($"Game started: {gameId}, Role: {playerRole}");
-	}
+                    if (message == null)
+                        continue;
 
-	private void HandlePlayerJoined(Dictionary<string, object> message)
-	{
-		string playerName = message.ContainsKey("player_name") ? message["player_name"].ToString() : "Unknown";
-		int totalPlayers = 0;
+                    int messageType = message.ContainsKey("type") ? message["type"].GetInt32() : 0;
+
+                    switch (messageType)
+                    {
+                        case 1: // Invocation (from server to client)
+                            HandleInvocation(message);
+                            break;
+                        case 2: // StreamItem
+                            break;
+                        case 3: // Completion (response to our invocations)
+                            HandleCompletion(message);
+                            break;
+                        case 6: // Ping
+                            break;
+                        default:
+                            GD.Print($"Unknown SignalR message type: {messageType}");
+                            break;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    GD.PrintErr($"Error parsing message: {ex.Message}\n{json}");
+                }
+            }
+        }
+    }
+
+    private void HandleInvocation(Dictionary<string, JsonElement> message)
+    {
+        Console.WriteLine("Handling invocation message");
+        Console.WriteLine(JsonSerializer.Serialize(message));
+        Console.WriteLine("-----");
+
+        if (!message.ContainsKey("target") || !message.ContainsKey("arguments"))
+            return;
+
+        string target = message["target"].GetString();
+        var arguments = message["arguments"];
+
+        switch (target)
+        {
+            case "GameStarted":
+                if (arguments.GetArrayLength() > 0)
+                {
+                    int sessionId = arguments[0].GetInt32();
+                    EmitSignal(SignalName.GameStarted, sessionId);
+                    GD.Print($"Game started: {sessionId}");
+                }
+                break;
+
+            case "ShowPattern":
+                if (arguments.GetArrayLength() > 1)
+                {
+                    var pattern = JsonSerializer.Deserialize<int[]>(arguments[0].GetRawText());
+                    int roundNumber = arguments[1].GetInt32();
+                    EmitSignal(SignalName.ShowPattern, pattern, roundNumber);
+                    GD.Print($"Pattern received - Round {roundNumber}: {string.Join(",", pattern)}");
+                }
+                break;
+
+            case "RoundChanged":
+                if (arguments.GetArrayLength() > 0)
+                {
+                    int roundNumber = arguments[0].GetInt32();
+                    EmitSignal(SignalName.RoundChanged, roundNumber);
+                    GD.Print($"Round changed to: {roundNumber}");
+                }
+                break;
+
+            case "GameEnded":
+                if (arguments.GetArrayLength() > 0)
+                {
+                    string leaderboard = arguments[0].GetRawText();
+                    EmitSignal(SignalName.GameEnded, leaderboard);
+                    GD.Print($"Game ended - Leaderboard: {leaderboard}");
+                }
+                break;
+
+            case "PlayerJoined":
+                if (arguments.GetArrayLength() > 1)
+                {
+                    string playerName = arguments[0].GetString();
+                    int playerId = arguments[1].GetInt32();
+                    EmitSignal(SignalName.PlayerJoined, playerName, playerId);
+                    GD.Print($"Player joined: {playerName} (ID: {playerId})");
+                }
+                break;
+
+            case "PlayerDisconnected":
+                if (arguments.GetArrayLength() > 0)
+                {
+                    string playerName = arguments[0].GetString();
+                    EmitSignal(SignalName.PlayerDisconnected, playerName);
+                    GD.Print($"Player disconnected: {playerName}");
+                }
+                break;
+
+            case "PlayerSubmitted":
+                if (arguments.GetArrayLength() > 3)
+                {
+                    string playerName = arguments[0].GetString();
+                    bool isCorrect = arguments[1].GetBoolean();
+                    int pointsEarned = arguments[2].GetInt32();
+                    int totalScore = arguments[3].GetInt32();
+                    EmitSignal(SignalName.PlayerSubmitted, playerName, isCorrect, pointsEarned, totalScore);
+                    GD.Print($"{playerName} submitted: {(isCorrect ? "✓" : "✗")} (+{pointsEarned}pts, total: {totalScore})");
+                }
+                break;
+
+            default:
+                GD.Print($"Unknown invocation target: {target}");
+                break;
+        }
+    }
+
+    private void HandleCompletion(Dictionary<string, JsonElement> message)
+    {
+        Console.WriteLine("Handling completion message");
+        Console.WriteLine(JsonSerializer.Serialize(message));
+        Console.WriteLine("-----");
+        // Gère les réponses aux méthodes invoquées (CreateGame, JoinGame, etc.)
+        if (!message.ContainsKey("invocationId"))
+            return;
+
+        string invocationId = message["invocationId"].GetString();
+
+        if (message.ContainsKey("result"))
+        {
+            var result = message["result"];
+
+            // Si c'est une réponse à CreateGame
+            if (result.ValueKind == JsonValueKind.String)
+            {
+                string gameCode = result.GetString();
+                gameId = gameCode;
+                EmitSignal(SignalName.GameCreated, gameCode);
+                GD.Print($"✅ Game created with code: {gameCode}");
+            }
+            else if (result.ValueKind == JsonValueKind.True || result.ValueKind == JsonValueKind.False)
+            {
+                bool success = result.GetBoolean();
+                GD.Print($"Operation result: {success}");
+            }
+        }
+        else if (message.ContainsKey("error"))
+        {
+            string error = message["error"].GetString();
+            GD.PrintErr($"Server error: {error}");
+        }
+    }
+
+    public void CreateGame(string playerName)
+    {
+        GD.Print($"Creating game as {playerName}");
+        var message = new
+        {
+            type = 1, // Invocation message type
+            target = "CreateGame",
+            arguments = new object[] { playerName, 4 }, // gameMasterName, gridSize
+            invocationId = Guid.NewGuid().ToString()
+        };
 		
-		if (message.ContainsKey("total_players"))
-		{
-			if (message["total_players"] is JsonElement element)
-				totalPlayers = element.GetInt32();
-			else
-				totalPlayers = Convert.ToInt32(message["total_players"]);
-		}
 
-		EmitSignal(SignalName.PlayerJoined, playerName, totalPlayers);
-		GD.Print($"Player joined: {playerName}, Total players: {totalPlayers}");
-	}
+        SendMessage(message);
+    }
 
-	private void HandleSequenceReceived(Dictionary<string, object> message)
-	{
-		if (message.ContainsKey("sequence") && message["sequence"] is JsonElement element)
-		{
-			try
-			{
-				var sequences = JsonSerializer.Deserialize<int[]>(element.GetRawText());
-				EmitSignal(SignalName.SequenceReceived, sequences);
-				GD.Print($"Sequence received: {string.Join(",", sequences)}");
-			}
-			catch (Exception ex)
-			{
-				GD.PrintErr($"Error deserializing sequence: {ex.Message}");
-			}
-		}
-	}
+    /// <summary>
+    /// Join an existing game
+    /// </summary>
+    public void JoinGame(string gameCode, string playerName)
+    {
+        var message = new
+        {
+            type = 1,
+            target = "JoinGame",
+            arguments = new object[] { gameCode, playerName },
+            invocationId = Guid.NewGuid().ToString()
+        };
 
-	private void HandleValidationResult(Dictionary<string, object> message)
-	{
-		bool isCorrect = message.ContainsKey("correct") && Convert.ToBoolean(message["correct"]);
-		string resultMessage = message.ContainsKey("message") ? message["message"].ToString() : "";
+        this.gameId = gameCode;
+        SendMessage(message);
+        GD.Print($"Joining game {gameCode} as {playerName}");
+    }
 
-		EmitSignal(SignalName.ValidationResult, isCorrect, resultMessage);
-		GD.Print($"Validation result: {isCorrect} - {resultMessage}");
-	}
+    /// <summary>
+    /// Start the game (Game Master only)
+    /// </summary>
+    public void StartGame()
+    {
+        var message = new
+        {
+            type = 1,
+            target = "StartGame",
+            arguments = new object[] { gameId }
+        };
 
-	private void HandleGameEnded(Dictionary<string, object> message)
-	{
-		bool won = message.ContainsKey("won") && Convert.ToBoolean(message["won"]);
-		string reason = message.ContainsKey("reason") ? message["reason"].ToString() : "Game ended";
+        SendMessage(message);
+        GD.Print($"Starting game {gameId}");
+    }
 
-		EmitSignal(SignalName.GameEnded, won, reason);
-		GD.Print($"Game ended: Won={won}, Reason={reason}");
-	}
+    /// <summary>
+    /// Next round (Game Master only)
+    /// </summary>
+    public void NextRound()
+    {
+        var message = new
+        {
+            type = 1,
+            target = "NextRound",
+            arguments = new object[] { gameId }
+        };
 
-	/// <summary>
-	/// Create a new game
-	/// </summary>
-	public void CreateGame(string playerName)
-	{
-		// TODO: Adapter le format du message selon votre serveur
-		// Vérifier les noms de clés: "player_id", "player_name", etc.
-		var message = new
-		{
-			type = "create_game",
-			player_id = playerId,
-			player_name = playerName
-		};
+        SendMessage(message);
+        GD.Print($"Next round requested");
+    }
 
-		SendMessage(message);
-	}
+    /// <summary>
+    /// Stop the game (Game Master only)
+    /// </summary>
+    public void StopGame()
+    {
+        var message = new
+        {
+            type = 1,
+            target = "StopGame",
+            arguments = new object[] { gameId }
+        };
 
-	/// <summary>
-	/// Join an existing game
-	/// </summary>
-	public void JoinGame(string gameId, string playerName)
-	{
-		// TODO: Adapter le format du message selon votre serveur
-		// Vérifier les noms de clés: "game_id", "player_id", "player_name", etc.
-		var message = new
-		{
-			type = "join_game",
-			game_id = gameId,
-			player_id = playerId,
-			player_name = playerName
-		};
+        SendMessage(message);
+        GD.Print($"Stopping game {gameId}");
+    }
 
-		SendMessage(message);
-	}
+    /// <summary>
+    /// Player submits their answer
+    /// </summary>
+    public void SubmitAttempt(int[] attempt, long reactionTimeMs)
+    {
+        var attemptList = new List<int>(attempt);
+        var message = new
+        {
+            type = 1,
+            target = "SubmitAttempt",
+            arguments = new object[] { gameId, attemptList, reactionTimeMs }
+        };
 
-	/// <summary>
-	/// Master sends the sequence
-	/// </summary>
-	public void SendSequence(int[] sequence)
-	{
-		// TODO: Adapter le format du message selon votre serveur
-		// Vérifier les noms de clés et la structure du tableau
-		var message = new
-		{
-			type = "send_sequence",
-			game_id = gameId,
-			player_id = playerId,
-			sequence = sequence
-		};
+        SendMessage(message);
+        GD.Print($"Answer submitted: {string.Join(",", attempt)} (time: {reactionTimeMs}ms)");
+    }
 
-		SendMessage(message);
-		GD.Print($"Sequence sent: {string.Join(",", sequence)}");
-	}
+    /// <summary>
+    /// Get the current leaderboard
+    /// </summary>
+    public void GetLeaderboard()
+    {
+        var message = new
+        {
+            type = 1,
+            target = "GetLeaderboard",
+            arguments = new object[] { gameId },
+            invocationId = Guid.NewGuid().ToString()
+        };
 
-	/// <summary>
-	/// Player sends their answer
-	/// </summary>
-	public void SendPlayerAnswer(int[] answer)
-	{
-		// TODO: Adapter le format du message selon votre serveur
-		// Vérifier les noms de clés et la structure du tableau
-		var message = new
-		{
-			type = "player_answer",
-			game_id = gameId,
-			player_id = playerId,
-			answer = answer
-		};
+        SendMessage(message);
+        GD.Print($"Requesting leaderboard");
+    }
 
-		SendMessage(message);
-		GD.Print($"Answer sent: {string.Join(",", answer)}");
-	}
+    /// <summary>
+    /// Generic message sender
+    /// </summary>
+    private void SendMessage(object data)
+    {
+        if (!isConnected || webSocketPeer == null)
+        {
+            GD.PrintErr("Not connected to server");
+            return;
+        }
 
-	/// <summary>
-	/// Request start of master turn
-	/// </summary>
-	public void RequestMasterTurn()
-	{
-		var message = new
-		{
-			type = "request_master_turn",
-			game_id = gameId,
-			player_id = playerId
-		};
+        string json = JsonSerializer.Serialize(data);
+        string signalRMessage = json + "\u001E";
+        webSocketPeer.SendText(signalRMessage);
+        GD.Print($"Sent: {json}");
+    }
 
-		SendMessage(message);
-	}
+    /// <summary>
+    /// Disconnect from server
+    /// </summary>
+    public void Disconnect()
+    {
+        if (webSocketPeer != null)
+        {
+            webSocketPeer.Close();
+            isConnected = false;
+            EmitSignal(SignalName.Disconnected);
+        }
+    }
 
-	/// <summary>
-	/// Request start of player turn
-	/// </summary>
-	public void RequestPlayerTurn()
-	{
-		var message = new
-		{
-			type = "request_player_turn",
-			game_id = gameId,
-			player_id = playerId
-		};
-
-		SendMessage(message);
-	}
-
-	/// <summary>
-	/// Generic message sender
-	/// </summary>
-	private void SendMessage(object data)
-	{
-		if (!isConnected || webSocketPeer == null)
-		{
-			GD.PrintErr("Not connected to server");
-			return;
-		}
-
-		string json = JsonSerializer.Serialize(data);
-		byte[] bytes = System.Text.Encoding.UTF8.GetBytes(json);
-		webSocketPeer.SendText(json);
-		GD.Print($"Sent: {json}");
-	}
-
-	/// <summary>
-	/// Disconnect from server
-	/// </summary>
-	public void Disconnect()
-	{
-		if (webSocketPeer != null)
-		{
-			webSocketPeer.Close();
-			isConnected = false;
-			EmitSignal(SignalName.Disconnected);
-		}
-	}
-
-	public new bool IsConnected => isConnected;
-	public string PlayerId => playerId;
-	public string GameId => gameId;
-	public string PlayerRole => playerRole;
+    public new bool IsConnected => isConnected;
+    public string PlayerId => playerId;
+    public string GameId => gameId;
+    public string PlayerRole
+    {
+        get => playerRole;
+        set => playerRole = value;
+    }
+    public string PlayerName
+    {
+        get => playerName;
+        set => playerName = value;
+    }
 }

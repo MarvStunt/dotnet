@@ -23,20 +23,20 @@ namespace Gauniv.GameServer.Hubs
         public override async Task OnDisconnectedAsync(Exception? exception)
         {
             Console.WriteLine($"❌ Client disconnected: {Context.ConnectionId}");
-            
+
             // Marquer le joueur comme déconnecté
             var player = await _dbContext.GamePlayers
                 .FirstOrDefaultAsync(p => p.ConnectionId == Context.ConnectionId);
-            
+
             if (player != null)
             {
                 player.IsConnected = false;
                 await _dbContext.SaveChangesAsync();
-                
+
                 await Clients.Group($"game_{player.GameSessionId}")
                     .SendAsync("PlayerDisconnected", player.PlayerName);
             }
-            
+
             await base.OnDisconnectedAsync(exception);
         }
 
@@ -47,6 +47,7 @@ namespace Gauniv.GameServer.Hubs
         /// </summary>
         public async Task<string> CreateGame(string gameMasterName, int gridSize = 4)
         {
+            Console.WriteLine($"TRYNG TO CREATE GAME FOR {gameMasterName} WITH GRID SIZE {gridSize}");
             var session = new GameSession
             {
                 GameMasterName = gameMasterName,
@@ -56,7 +57,6 @@ namespace Gauniv.GameServer.Hubs
 
             _dbContext.GameSessions.Add(session);
             await _dbContext.SaveChangesAsync();
-
             await Groups.AddToGroupAsync(Context.ConnectionId, $"game_{session.Id}");
 
             Console.WriteLine($"🎮 Game created: {session.Code} by {gameMasterName}");
