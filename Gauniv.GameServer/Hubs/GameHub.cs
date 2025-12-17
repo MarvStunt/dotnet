@@ -68,6 +68,9 @@ namespace Gauniv.GameServer.Hubs
         /// </summary>
         public async Task StartGame(string gameCode)
         {
+            Console.WriteLine($"TRYNG TO START GAME {gameCode}");
+            Console.WriteLine($"---------");
+
             var session = await _dbContext.GameSessions
                 .FirstOrDefaultAsync(gs => gs.Code == gameCode);
 
@@ -85,19 +88,22 @@ namespace Gauniv.GameServer.Hubs
 
             await Clients.Group($"game_{session.Id}").SendAsync("GameStarted", session.Id);
             Console.WriteLine($"▶️ Game {gameCode} started");
-
-            // Démarrer automatiquement le premier round
-            await StartRound(gameCode);
         }
 
         /// <summary>
         /// Créer et diffuser le pattern du round actuel
         /// </summary>
-        public async Task StartRound(string gameCode)
+        public async Task StartRound(string gameCode, string sequence)
         {
             var session = await _dbContext.GameSessions
                 .Include(gs => gs.Rounds)
                 .FirstOrDefaultAsync(gs => gs.Code == gameCode);
+
+            Console.WriteLine($"TRYNG TO START ROUND FOR GAME {gameCode} WITH SEQUENCE {sequence}");
+            Console.WriteLine($"SESSION IS NULL: {session == null}");
+            Console.WriteLine($"SESSION STATUS: {session?.Status}");
+            Console.WriteLine($"SESSION ROUNDS COUNT: {session?.Id}");
+            Console.WriteLine($"---------");
 
             if (session == null)
                 throw new HubException("Game not found");
@@ -105,25 +111,18 @@ namespace Gauniv.GameServer.Hubs
             if (session.Status != GameSessionStatus.InProgress)
                 throw new HubException("Game not in progress");
 
-            // Générer pattern aléatoire
-            var random = new Random();
-            var maxCells = session.GridSize * session.GridSize;
-            var pattern = new List<int>();
-
-            for (int i = 0; i < session.CurrentRound; i++)
-            {
-                pattern.Add(random.Next(0, maxCells));
-            }
-
             var round = new GameRound
             {
                 GameSessionId = session.Id,
                 RoundNumber = session.CurrentRound,
-                Pattern = JsonSerializer.Serialize(pattern)
+                Pattern = sequence
             };
 
             _dbContext.GameRounds.Add(round);
             await _dbContext.SaveChangesAsync();
+
+            // Parser la séquence JSON en int[]
+            var pattern = JsonSerializer.Deserialize<int[]>(sequence) ?? Array.Empty<int>();
 
             // Diffuser le pattern à tous les joueurs
             await Clients.Group($"game_{session.Id}")
@@ -149,7 +148,7 @@ namespace Gauniv.GameServer.Hubs
             await Clients.Group($"game_{session.Id}")
                 .SendAsync("RoundChanged", session.CurrentRound);
 
-            await StartRound(gameCode);
+            // await StartRound(gameCode);
         }
 
         /// <summary>

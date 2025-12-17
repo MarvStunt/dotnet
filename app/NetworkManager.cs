@@ -45,7 +45,7 @@ public partial class NetworkManager : Control
     public delegate void GameEndedEventHandler(string leaderboardJson);
 
     [Signal]
-    public delegate void PlayerJoinedEventHandler(string playerName, int playerId);
+    public delegate void PlayerJoinedEventHandler(string playerName, string playerId);
 
     [Signal]
     public delegate void PlayerDisconnectedEventHandler(string playerName);
@@ -202,7 +202,7 @@ public partial class NetworkManager : Control
             case "GameStarted":
                 if (arguments.GetArrayLength() > 0)
                 {
-                    int sessionId = arguments[0].GetInt32();
+                    string sessionId = arguments[0].GetString();
                     EmitSignal(SignalName.GameStarted, sessionId);
                     GD.Print($"Game started: {sessionId}");
                 }
@@ -240,7 +240,7 @@ public partial class NetworkManager : Control
                 if (arguments.GetArrayLength() > 1)
                 {
                     string playerName = arguments[0].GetString();
-                    int playerId = arguments[1].GetInt32();
+                    string playerId = arguments[1].GetString();
                     EmitSignal(SignalName.PlayerJoined, playerName, playerId);
                     GD.Print($"Player joined: {playerName} (ID: {playerId})");
                 }
@@ -356,6 +356,23 @@ public partial class NetworkManager : Control
 
         SendMessage(message);
         GD.Print($"Starting game {gameId}");
+    }
+
+    /// <summary>
+    /// Start round with a specific sequence (Game Master only)
+    /// </summary>
+    public void StartRound(List<int> sequence)
+    {
+        var sequenceJson = JsonSerializer.Serialize(sequence);
+        var message = new
+        {
+            type = 1,
+            target = "StartRound",
+            arguments = new object[] { gameId, sequenceJson }
+        };
+
+        SendMessage(message);
+        GD.Print($"Starting round with sequence: {string.Join(",", sequence)}");
     }
 
     /// <summary>

@@ -60,24 +60,28 @@ layout_mode = 2
 layout_mode = 2
 text = "1"
 script = ExtResource("2_sb48q")
+self_modulate = Color(1, 0, 0, 1)
 
 [node name="ColorButton2" type="Button" parent="Main/Game Area/Master Section/Buttons"]
 layout_mode = 2
 text = "2"
 script = ExtResource("2_sb48q")
 ColorIndex = 1
+self_modulate = Color(0, 0, 1, 1)
 
 [node name="ColorButton3" type="Button" parent="Main/Game Area/Master Section/Buttons"]
 layout_mode = 2
 text = "3"
 script = ExtResource("2_sb48q")
 ColorIndex = 2
+self_modulate = Color(0, 1, 0, 1)
 
 [node name="ColorButton4" type="Button" parent="Main/Game Area/Master Section/Buttons"]
 layout_mode = 2
 text = "4"
 script = ExtResource("2_sb48q")
 ColorIndex = 3
+self_modulate = Color(1, 1, 0, 1)
 
 [node name="SendSequenceButton" type="Button" parent="Main/Game Area/Master Section"]
 layout_mode = 2
@@ -87,10 +91,6 @@ text = "SendSequenceButton"
 layout_mode = 2
 text = "SequenceLabel"
 
-[node name="StartGameButton" type="Button" parent="Main/Game Area/Master Section"]
-layout_mode = 2
-disabled = true
-text = "Start Game"
 
 [node name="Player Section" type="VBoxContainer" parent="Main/Game Area"]
 layout_mode = 2
@@ -124,10 +124,6 @@ layout_mode = 2
 text = "4"
 script = ExtResource("2_sb48q")
 ColorIndex = 3
-
-[node name="SubmitButton" type="Button" parent="Main/Game Area/Player Section"]
-layout_mode = 2
-text = "SubmitButton"
 
 [node name="FeedbackLabel" type="Label" parent="Main/Game Area/Player Section"]
 layout_mode = 2

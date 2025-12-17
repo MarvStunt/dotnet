@@ -19,7 +19,7 @@ public partial class Game : Control
     private Label feedbackLabel;
     private Label playerName;
     private Button sendSequenceButton;
-    private Button submitButton;
+    private Button nextRoundButton;
     private Button disconnectButton;
     private Button startGameButton;
     private NetworkManager networkManager;
@@ -36,7 +36,7 @@ public partial class Game : Control
         sequenceLabel = GetNode<Label>("Main/Game Area/Master Section/SequenceLabel");
         feedbackLabel = GetNode<Label>("Main/Game Area/Player Section/FeedbackLabel");
         sendSequenceButton = GetNode<Button>("Main/Game Area/Master Section/SendSequenceButton");
-        submitButton = GetNode<Button>("Main/Game Area/Player Section/SubmitButton");
+        nextRoundButton = GetNode<Button>("Main/Game Area/Master Section/NextRoundButton");
         disconnectButton = GetNode<Button>("Main/Status/DisconnectButton");
         roleLabel = GetNode<Label>("Main/Status/RoleLabel");
         gameIdLabel = GetNode<Label>("Main/Status/StateLabel");
@@ -70,8 +70,8 @@ public partial class Game : Control
             disconnectButton.Pressed += OnDisconnectPressed;
         if (sendSequenceButton != null)
             sendSequenceButton.Pressed += OnSendSequence;
-        if (submitButton != null)
-            submitButton.Pressed += OnSubmitAnswer;
+        if (nextRoundButton != null)
+            nextRoundButton.Pressed += OnNextRound;
         if (startGameButton != null)
             startGameButton.Pressed += OnStartGamePressed;
         if (resultPanel != null && retryButton != null && hubButton != null)
@@ -145,14 +145,35 @@ public partial class Game : Control
         }
 
         networkManager.ShowPattern += OnShowPattern;
-
+        networkManager.RoundChanged += OnRoundChanged;
         networkManager.PlayerSubmitted += OnPlayerSubmitted;
-
         networkManager.GameEnded += OnGameEnded;
-
         networkManager.PlayerJoined += OnPlayerJoined;
 
         GD.Print("Network signals connected");
+    }
+
+    // Handler for round changed (master builds sequence, player waits)
+    private void OnRoundChanged(int roundNumber)
+    {
+        GD.Print($"Game: Round changed to {roundNumber}");
+        
+        if (isMaster)
+        {
+            // Master prepares to build sequence for this round
+            sequence.Clear();
+            playerInput.Clear();
+            isPlayerTurn = true;
+            if (labelInfo != null)
+                labelInfo.Text = $"Round {roundNumber}\nClick buttons to build sequence 🎯";
+            GD.Print($"Master: Ready to build sequence for round {roundNumber}");
+        }
+        else
+        {
+            // Player waits for pattern
+            if (labelInfo != null)
+                labelInfo.Text = $"Round {roundNumber}\nWaiting for master...";
+        }
     }
 
     // Handler for when pattern is received from server (players only)
@@ -231,12 +252,36 @@ public partial class Game : Control
         if (btn == null)
             return;
 
-        Color original = btn.Modulate;
+        // Enable button
+        btn.Disabled = false;
+        await ToSignal(GetTree().CreateTimer(0.5f), "timeout");
 
-        btn.Modulate = Colors.White;
-        await ToSignal(GetTree().CreateTimer(0.4f), "timeout");
+        // Disable button
+        btn.Disabled = true;
+        await ToSignal(GetTree().CreateTimer(0.2f), "timeout");
+    }
 
-        btn.Modulate = original;
+    // Flash only player buttons with the correct index
+    private async Task FlashPlayerButton(int index)
+    {
+        if (playerSection == null)
+            return;
+
+        Godot.Collections.Array<Node> playerButtons = playerSection.GetNode("Buttons").GetChildren();
+
+        if (index < 0 || index >= playerButtons.Count)
+            return;
+
+        ColorButton btn = playerButtons[index] as ColorButton;
+        if (btn == null)
+            return;
+
+        // Enable button
+        btn.Disabled = false;
+        await ToSignal(GetTree().CreateTimer(0.5f), "timeout");
+
+        // Disable button
+        btn.Disabled = true;
         await ToSignal(GetTree().CreateTimer(0.2f), "timeout");
     }
 
@@ -245,8 +290,6 @@ public partial class Game : Control
     {
         if (!isPlayerTurn)
             return;
-
-        await FlashButton(index);
 
         // Master building sequence
         if (isMaster)
@@ -305,8 +348,10 @@ public partial class Game : Control
         labelInfo.Text = "Watch 👀";
 
         foreach (int index in sequence)
-            await FlashButton(index);
+            await FlashPlayerButton(index);
 
+        // Enable buttons for player to respond
+        EnableGameButtons();
         labelInfo.Text = "Your turn 🎯";
         isPlayerTurn = true;
         playerInput.Clear();
@@ -357,11 +402,23 @@ public partial class Game : Control
             return;
         }
 
-        GD.Print($"Master starting next round");
-        // Le serveur génère automatiquement la séquence
-        networkManager.NextRound();
-        labelInfo.Text = "Starting next round...\nWaiting for players...";
+        GD.Print($"Master starting round");
+        networkManager.StartRound(sequence);
+        labelInfo.Text = "Sequence sent!\nWaiting for players...";
     }
+
+	public void OnNextRound()
+	{
+		if (!isMaster || networkManager == null)
+		{
+			GD.PrintErr("OnNextRound: Not a master or not in network game");
+			return;
+		}
+
+		GD.Print("Master starting next round");
+		networkManager.NextRound();
+		labelInfo.Text = "Starting next round...\nWaiting for players...";
+	}
 
     public void OnSubmitAnswer()
     {
@@ -395,8 +452,6 @@ public partial class Game : Control
         // Disable send/submit buttons
         if (sendSequenceButton != null)
             sendSequenceButton.Disabled = true;
-        if (submitButton != null)
-            submitButton.Disabled = true;
 
         // Disable start button until players join
         if (startGameButton != null)
@@ -416,26 +471,24 @@ public partial class Game : Control
         // Enable send/submit buttons
         if (sendSequenceButton != null && isMaster)
             sendSequenceButton.Disabled = false;
-        if (submitButton != null && !isMaster)
-            submitButton.Disabled = false;
 
         GD.Print("Game buttons enabled");
     }
 
-    public void OnPlayerJoined(string playerName, int totalPlayers)
+    public void OnPlayerJoined(string playerName, string playerId)
     {
-        connectedPlayers = totalPlayers;
-        GD.Print($"Game: Player joined - {playerName}, Total: {totalPlayers}");
+        connectedPlayers++;
+        GD.Print($"Game: Player joined - {playerName} (ID: {playerId}), Total: {connectedPlayers}");
 
         if (isMaster && labelInfo != null)
         {
-            labelInfo.Text = $"Players connected: {totalPlayers} 👥\nClick 'Start Game' to begin!";
+            labelInfo.Text = $"Players connected: {connectedPlayers} 👥\nClick 'Start Game' to begin!";
         }
 
         // Enable start button when at least 1 player connected
         if (startGameButton != null && isMaster)
         {
-            startGameButton.Disabled = (totalPlayers == 0);
+            startGameButton.Disabled = (connectedPlayers == 0);
         }
     }
 
@@ -447,6 +500,7 @@ public partial class Game : Control
             gameStarted = true;
             EnableGameButtons();
             StartMasterGame();
+			networkManager.StartGame();
         }
         else if (connectedPlayers == 0)
         {
