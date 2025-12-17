@@ -22,6 +22,8 @@ public partial class Game : Control
     private Button nextRoundButton;
     private Button disconnectButton;
     private Button startGameButton;
+    private Button endGameButton;
+    private Button copyGameIdButton;
     private NetworkManager networkManager;
     private ResultPanel resultPanel;
     private Control masterSection;
@@ -41,9 +43,11 @@ public partial class Game : Control
         roleLabel = GetNode<Label>("Main/Status/RoleLabel");
         gameIdLabel = GetNode<Label>("Main/Status/StateLabel");
         playerName = GetNode<Label>("Main/Status/PlayerName");
+        copyGameIdButton = GetNode<Button>("Main/Status/CopyGameIdButton");
         resultPanel = GetNode<ResultPanel>("Main/ResultPanel");
 
         startGameButton = GetNode<Button>("Main/Game Area/Master Section/StartGameButton");
+        endGameButton = GetNode<Button>("Main/Game Area/Master Section/EndGameButton");
 
         Godot.Collections.Array<Node> masterButtons = GetNode("Main/Game Area/Master Section/Buttons").GetChildren();
         Godot.Collections.Array<Node> playerButtons = GetNode("Main/Game Area/Player Section/Buttons").GetChildren();
@@ -74,6 +78,10 @@ public partial class Game : Control
             nextRoundButton.Pressed += OnNextRound;
         if (startGameButton != null)
             startGameButton.Pressed += OnStartGamePressed;
+        if (endGameButton != null)
+            endGameButton.Pressed += OnEndGamePressed;
+        if (copyGameIdButton != null)
+            copyGameIdButton.Pressed += OnCopyGameIdPressed;
         if (resultPanel != null && retryButton != null && hubButton != null)
         {
             retryButton.Pressed += OnRetryPressed;
@@ -195,6 +203,10 @@ public partial class Game : Control
         {
             labelInfo.Text = $"❌ {playerName}: Wrong! (Total: {totalScore})";
         }
+        
+        // Disable player input until next turn
+        isPlayerTurn = false;
+        DisablePlayerButtons();
     }
 
     // Handler for game ended signal from server
@@ -475,6 +487,21 @@ public partial class Game : Control
         GD.Print("Game buttons enabled");
     }
 
+    private void DisablePlayerButtons()
+    {
+        if (playerSection == null)
+            return;
+
+        Godot.Collections.Array<Node> playerButtons = playerSection.GetNode("Buttons").GetChildren();
+        foreach (Node btn in playerButtons)
+        {
+            if (btn is ColorButton colorBtn)
+                colorBtn.Disabled = true;
+        }
+
+        GD.Print("Player buttons disabled");
+    }
+
     public void OnPlayerJoined(string playerName, string playerId)
     {
         connectedPlayers++;
@@ -508,4 +535,38 @@ public partial class Game : Control
                 labelInfo.Text = "Cannot start: No players connected";
         }
     }
+
+    public void OnEndGamePressed()
+    {
+        GD.Print("End game button pressed");
+        if (isMaster && networkManager != null)
+        {
+            if (labelInfo != null)
+                labelInfo.Text = "🏁 Game ended by master!";
+            networkManager.StopGame();
+            gameStarted = false;
+        }
+    }
+
+    public async void OnCopyGameIdPressed()
+    {
+        if (networkManager != null && !string.IsNullOrEmpty(networkManager.GameId))
+        {
+            DisplayServer.ClipboardSet(networkManager.GameId);
+            GD.Print($"Game ID copied to clipboard: {networkManager.GameId}");
+            if (copyGameIdButton != null)
+            {
+                // Temporary feedback
+                string originalText = copyGameIdButton.Text;
+                copyGameIdButton.Text = "✓ Copied!";
+                await ToSignal(GetTree().CreateTimer(2.0f), "timeout");
+                copyGameIdButton.Text = originalText;
+            }
+        }
+        else
+        {
+            GD.PrintErr("Game ID not available");
+        }
+    }
 }
+

@@ -32,6 +32,10 @@ text = "Rôle: Master"
 layout_mode = 2
 text = "État: En attente"
 
+[node name="CopyGameIdButton" type="Button" parent="Main/Status"]
+layout_mode = 2
+text = "📋 Copy ID"
+
 [node name="DisconnectButton" type="Button" parent="Main/Status"]
 layout_mode = 2
 text = "DisconnectButton"
@@ -95,6 +99,10 @@ text = "Start Game"
 [node name="NextRoundButton" type="Button" parent="Main/Game Area/Master Section"]
 layout_mode = 2
 text = "NextRoundButton"
+
+[node name="EndGameButton" type="Button" parent="Main/Game Area/Master Section"]
+layout_mode = 2
+text = "End Game"
 
 [node name="Player Section" type="VBoxContainer" parent="Main/Game Area"]
 layout_mode = 2
