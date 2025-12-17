@@ -43,6 +43,9 @@ public partial class NetworkManager : Control
 	[Signal]
 	public delegate void GameEndedEventHandler(bool won, string reason);
 
+	[Signal]
+	public delegate void PlayerJoinedEventHandler(string playerName, int totalPlayers);
+
 	public override void _Ready()
 	{
 		playerId = Guid.NewGuid().ToString();
@@ -145,6 +148,9 @@ public partial class NetworkManager : Control
 						// TODO: Adapter selon la réponse réelle de votre serveur
 						HandleGameStarted(message);
 						break;
+					case "player_joined":
+						HandlePlayerJoined(message);
+						break;
 					case "sequence":
 						// TODO: Adapter selon la réponse réelle de votre serveur
 						HandleSequenceReceived(message);
@@ -177,6 +183,23 @@ public partial class NetworkManager : Control
 
 		EmitSignal(SignalName.GameStarted, gameId, playerRole);
 		GD.Print($"Game started: {gameId}, Role: {playerRole}");
+	}
+
+	private void HandlePlayerJoined(Dictionary<string, object> message)
+	{
+		string playerName = message.ContainsKey("player_name") ? message["player_name"].ToString() : "Unknown";
+		int totalPlayers = 0;
+		
+		if (message.ContainsKey("total_players"))
+		{
+			if (message["total_players"] is JsonElement element)
+				totalPlayers = element.GetInt32();
+			else
+				totalPlayers = Convert.ToInt32(message["total_players"]);
+		}
+
+		EmitSignal(SignalName.PlayerJoined, playerName, totalPlayers);
+		GD.Print($"Player joined: {playerName}, Total players: {totalPlayers}");
 	}
 
 	private void HandleSequenceReceived(Dictionary<string, object> message)

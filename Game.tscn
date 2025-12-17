@@ -83,6 +83,11 @@ text = "SendSequenceButton"
 layout_mode = 2
 text = "SequenceLabel"
 
+[node name="StartGameButton" type="Button" parent="Main/Game Area/Master Section"]
+layout_mode = 2
+disabled = true
+text = "Start Game"
+
 [node name="Player Section" type="VBoxContainer" parent="Main/Game Area"]
 layout_mode = 2
 

@@ -137,7 +137,7 @@ wss.on('connection', (ws) => {
 		}
 
 		console.log(`\n🔢 SÉQUENCE REÇUE`);
-		console.log(`   Sequence: [${message.sequence.join(', ')}]`);
+		console.log(`   Sequence: [${message.sequence}]`);
 
 		// Sauvegarder la séquence
 		game.latestSequence = message.sequence;
