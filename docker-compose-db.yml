@@ -11,22 +11,6 @@ services:
       - POSTGRES_USER=admin
       - POSTGRES_DB=db
     depends_on: []
-  postgres_replica1:
-    image: postgres:15-alpine
-    ports:
-      - 5431:5432
-    environment:
-      - POSTGRES_PASSWORD=password
-    depends_on:
-      - postgres_primary
-  postgres_replica2:
-    image: postgres:15-alpine
-    ports:
-      - 5430:5432
-    environment:
-      - POSTGRES_PASSWORD=password
-    depends_on:
-      - postgres_primary
   pgadmin:
     image: dpage/pgadmin4:latest
     ports:

@@ -63,13 +63,14 @@ namespace Gauniv.WebServer.Websocket
                 {
                     if (!ConnectedUsers.ContainsKey(local_userId))
                     {
-                    ConnectedUsers[local_userId].Count++;
-                    
-                    // Notifier tous les clients qu'un utilisateur est en ligne
-                    await Clients.All.SendAsync("UserOnline", local_user.UserName, local_userId);
+                        ConnectedUsers[local_userId].Count++;
+
+                        // Notifier tous les clients qu'un utilisateur est en ligne
+                        await Clients.All.SendAsync("UserOnline", local_user.UserName, local_userId);
+                    }
                 }
+                await base.OnConnectedAsync();
             }
-            await base.OnConnectedAsync();
         }
 
         public async override Task OnDisconnectedAsync(Exception? exception)
@@ -81,15 +82,15 @@ namespace Gauniv.WebServer.Websocket
                 {
                     var local_user = ConnectedUsers[local_userId].User;
                     ConnectedUsers.Remove(local_userId);
-                    
+
                     // Notifier tous les clients qu'un utilisateur est hors ligne
                     await Clients.All.SendAsync("UserOffline", local_user.UserName, local_userId);
-                    
+
                     // Marquer le joueur comme déconnecté dans toutes ses parties actives
                     var local_activePlayers = await _dbContext.GamePlayers
                         .Where(gp => gp.UserId == local_userId && gp.IsConnected)
                         .ToListAsync();
-                    
+
                     foreach (var local_player in local_activePlayers)
                     {
                         local_player.IsConnected = false;
@@ -178,7 +179,7 @@ namespace Gauniv.WebServer.Websocket
             var local_random = new Random();
             var local_maxCells = local_session.GridSize * local_session.GridSize;
             var local_pattern = new List<int>();
-            
+
             for (int i = 0; i < local_session.CurrentRound; i++)
             {
                 local_pattern.Add(local_random.Next(0, local_maxCells));
@@ -264,7 +265,7 @@ namespace Gauniv.WebServer.Websocket
             await Groups.AddToGroupAsync(Context.ConnectionId, $"game_{local_session.Id}");
 
             var local_user = await _userManager.FindByIdAsync(local_userId);
-            
+
             // Notifier tous les joueurs de la partie
             await Clients.Group($"game_{local_session.Id}").SendAsync("PlayerJoined", local_user?.UserName, local_player.Id);
 
@@ -310,13 +311,13 @@ namespace Gauniv.WebServer.Websocket
             if (local_isCorrect)
             {
                 local_pointsEarned = 100 * local_session.CurrentRound;
-                
+
                 // Bonus de rapidité (max 50 points)
                 if (reactionTimeMs < 5000)
                 {
                     local_pointsEarned += (int)(50 * (1 - reactionTimeMs / 5000.0));
                 }
-                
+
                 local_player.Score += local_pointsEarned;
             }
 
@@ -336,7 +337,7 @@ namespace Gauniv.WebServer.Websocket
             var local_user = await _userManager.FindByIdAsync(local_userId);
 
             // Notifier tous les joueurs du résultat
-            await Clients.Group($"game_{local_session.Id}").SendAsync("PlayerSubmitted", 
+            await Clients.Group($"game_{local_session.Id}").SendAsync("PlayerSubmitted",
                 local_user?.UserName, local_isCorrect, local_pointsEarned, local_player.Score);
         }
 
@@ -355,10 +356,11 @@ namespace Gauniv.WebServer.Websocket
 
             var local_leaderboard = local_session.Players
                 .OrderByDescending(p => p.Score)
-                .Select(p => new { 
-                    p.User!.UserName, 
-                    p.Score, 
-                    p.IsConnected 
+                .Select(p => new
+                {
+                    p.User!.UserName,
+                    p.Score,
+                    p.IsConnected
                 })
                 .ToList();
 
