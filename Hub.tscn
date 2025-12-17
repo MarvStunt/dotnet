@@ -1,0 +1,79 @@
+[gd_scene load_steps=2 format=3 uid="uid://cxt0hnbwuywl"]
+
+[ext_resource type="Script" uid="uid://b64o1taqau1yx" path="res://Hub.cs" id="1_2ju24"]
+
+[node name="Hub" type="Control"]
+layout_mode = 3
+anchor_right = 0.82100004
+anchor_bottom = 0.78300005
+offset_right = -181.15002
+offset_bottom = -144.95004
+script = ExtResource("1_2ju24")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Titre" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+text = "Memory Game - Hub"
+horizontal_alignment = 1
+
+[node name="CreateGamePanel" type="VBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="Creer une partie" type="Label" parent="VBoxContainer/CreateGamePanel"]
+layout_mode = 2
+text = "Creer une partie"
+
+[node name="CreateGameSubPanel" type="HBoxContainer" parent="VBoxContainer/CreateGamePanel"]
+layout_mode = 2
+
+[node name="PlayerNameInput_Create" type="LineEdit" parent="VBoxContainer/CreateGamePanel/CreateGameSubPanel"]
+custom_minimum_size = Vector2(200, 0)
+layout_mode = 2
+placeholder_text = "Votre nom"
+
+[node name="CreateGameButton" type="Button" parent="VBoxContainer/CreateGamePanel/CreateGameSubPanel"]
+custom_minimum_size = Vector2(150, 0)
+layout_mode = 2
+text = "Créer
+"
+
+[node name="VSeparator" type="VSeparator" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="JoinGamePanel" type="VBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="Rejoindre une partie" type="Label" parent="VBoxContainer/JoinGamePanel"]
+layout_mode = 2
+text = "Rejoindre une partie"
+
+[node name="JoinGameSubPanel" type="HBoxContainer" parent="VBoxContainer/JoinGamePanel"]
+layout_mode = 2
+
+[node name="GameIdInput" type="LineEdit" parent="VBoxContainer/JoinGamePanel/JoinGameSubPanel"]
+custom_minimum_size = Vector2(200, 0)
+layout_mode = 2
+placeholder_text = "ID de partie"
+
+[node name="PlayerNameInput_Join" type="LineEdit" parent="VBoxContainer/JoinGamePanel/JoinGameSubPanel"]
+custom_minimum_size = Vector2(200, 0)
+layout_mode = 2
+placeholder_text = "Votre nom"
+
+[node name="JoinGameButton" type="Button" parent="VBoxContainer/JoinGamePanel/JoinGameSubPanel"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+text = "Rejoindre
+"
+
+[node name="StatusLabel" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+text = "En attente..."

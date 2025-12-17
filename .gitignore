@@ -1,0 +1,33 @@
+# Godot 4+ specific ignores
+.godot/
+/android/
+
+# Godot project files
+*.uid
+export_presets.cfg
+*.import
+
+# Node.js
+node_modules/
+package-lock.json
+npm-debug.log
+yarn-error.log
+
+# C# / .NET
+bin/
+obj/
+*.csproj.user
+*.sln.user
+.vs/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Archive files
+*.zip
+memorytest.zip
