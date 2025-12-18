@@ -4,49 +4,46 @@
     ViewData["Title"] = "Joueurs";
 }
 
-<div class="container">
-    <div class="text-center mb-4">
-        <h1 class="display-4">👥 Communauté Gauniv</h1>
-        <p class="lead">@Model.Count joueur(s) inscrit(s)</p>
+<div class="store-page">
+    <!-- Hero Section -->
+    <div class="hero-section">
+        <div class="container">
+            <h1 class="hero-title">👥 Communauté Gauniv</h1>
+            <p class="hero-subtitle">@Model.Count joueur(s) inscrit(s)</p>
+        </div>
     </div>
 
-    <!-- Statistiques -->
-    <div class="row mb-4">
-        <div class="col-md-4">
+    <div class="container store-container">
+        <!-- Statistiques -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 40px;">
             <div class="stat-card">
                 <p class="mb-0">Joueurs Inscrits</p>
                 <h3>@Model.Count</h3>
             </div>
-        </div>
-        <div class="col-md-4">
             <div class="stat-card" style="background: linear-gradient(135deg, #56ab2f 0%, #a8e063 100%);">
                 <p class="mb-0">En Ligne</p>
                 <h3>@OnlineHub.ConnectedUsers.Count</h3>
             </div>
-        </div>
-        <div class="col-md-4">
             <div class="stat-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
                 <p class="mb-0">Total Jeux Achetés</p>
                 <h3>@Model.Sum(u => u.PurchasedGames.Count)</h3>
             </div>
         </div>
-    </div>
 
-    <!-- Filtre En ligne / Tous -->
-    <div class="mb-3">
-        <button class="btn btn-primary me-2" onclick="filterPlayers('all')">Tous les joueurs</button>
-        <button class="btn btn-success" onclick="filterPlayers('online')">En ligne uniquement</button>
-    </div>
+        <!-- Filtre En ligne / Tous -->
+        <div style="display: flex; gap: 12px; margin-bottom: 30px; flex-wrap: wrap;">
+            <button class="btn btn-primary" onclick="filterPlayers('all')" style="padding: 10px 20px; font-weight: 600;">Tous les joueurs</button>
+            <button class="btn btn-primary" onclick="filterPlayers('online')" style="padding: 10px 20px; font-weight: 600; background: linear-gradient(135deg, #56ab2f 0%, #a8e063 100%) !important;">En ligne uniquement</button>
+        </div>
 
-    <!-- Liste des joueurs -->
-    <div id="players-list">
-        @foreach (var player in Model)
-        {
-            var isOnline = OnlineHub.ConnectedUsers.ContainsKey(player.Id);
-            <div class="player-card" data-online="@isOnline.ToString().ToLower()">
-                <div class="row align-items-center">
-                    <div class="col-md-6">
-                        <h5 class="mb-1">
+        <!-- Liste des joueurs -->
+        <div id="players-list">
+            @foreach (var player in Model)
+            {
+                var isOnline = OnlineHub.ConnectedUsers.ContainsKey(player.Id);
+                <div class="player-card" data-online="@isOnline.ToString().ToLower()" style="display: flex; align-items: center; justify-content: space-between;">
+                    <div style="flex: 1;">
+                        <h5 style="margin: 0 0 8px 0; font-weight: 600; display: flex; align-items: center; gap: 8px;">
                             @if (isOnline)
                             {
                                 <span class="player-status-online">🟢</span>
@@ -57,26 +54,25 @@
                             }
                             @player.FirstName @player.LastName
                         </h5>
-                        <p class="text-muted mb-0">@player.Email</p>
+                        <p style="margin: 0; color: #9ca3af; font-size: 0.9rem;">@player.Email</p>
                     </div>
-                    <div class="col-md-3 text-center">
-                        <div>
-                            <strong>@player.PurchasedGames.Count</strong> jeu(x)
-                        </div>
+                    <div style="text-align: center; margin: 0 2rem;">
+                        <div style="font-weight: 600; color: #ffffff; font-size: 1.1rem;">@player.PurchasedGames.Count</div>
+                        <div style="color: #b0b0c0; font-size: 0.85rem;">jeu(x)</div>
                     </div>
-                    <div class="col-md-3 text-end">
+                    <div>
                         @if (isOnline)
                         {
-                            <span class="badge bg-success">En ligne</span>
+                            <span style="background: #10b981; color: white; padding: 6px 12px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; display: inline-block;">En ligne</span>
                         }
                         else
                         {
-                            <span class="badge bg-secondary">Hors ligne</span>
+                            <span style="background: #6b7280; color: white; padding: 6px 12px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; display: inline-block;">Hors ligne</span>
                         }
                     </div>
                 </div>
-            </div>
-        }
+            }
+        </div>
     </div>
 </div>
 

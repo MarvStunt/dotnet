@@ -56,14 +56,19 @@ namespace Gauniv.WebServer.Controllers
             int? categoryId,
             decimal? minPrice,
             decimal? maxPrice,
-            bool? owned
+            int? minSize,
+            bool? owned,
+            int page = 1
         )
         {
+            const int pageSize = 12; // 12 games per page (good for 4-column grid)
+            
             var gamesQuery = applicationDbContext
                 .Games.Include(g => g.GameCategories)
                     .ThenInclude(gc => gc.Category)
                 .AsQueryable();
 
+            // Filter by search name/description
             if (!string.IsNullOrEmpty(search))
             {
                 gamesQuery = gamesQuery.Where(g =>
@@ -71,6 +76,7 @@ namespace Gauniv.WebServer.Controllers
                 );
             }
 
+            // Filter by category
             if (categoryId.HasValue)
             {
                 gamesQuery = gamesQuery.Where(g =>
@@ -78,6 +84,7 @@ namespace Gauniv.WebServer.Controllers
                 );
             }
 
+            // Filter by price range
             if (minPrice.HasValue)
             {
                 gamesQuery = gamesQuery.Where(g => g.Price >= minPrice.Value);
@@ -87,6 +94,14 @@ namespace Gauniv.WebServer.Controllers
                 gamesQuery = gamesQuery.Where(g => g.Price <= maxPrice.Value);
             }
 
+            // Filter by file size (in KB)
+            if (minSize.HasValue && minSize.Value > 0)
+            {
+                var minSizeBytes = minSize.Value * 1024; // Convert KB to bytes
+                gamesQuery = gamesQuery.Where(g => g.Payload.Length >= minSizeBytes);
+            }
+
+            // Filter by ownership status
             if (owned.HasValue && User.Identity?.IsAuthenticated == true)
             {
                 var user = await userManager.GetUserAsync(User);
@@ -107,7 +122,11 @@ namespace Gauniv.WebServer.Controllers
                 }
             }
 
-            var games = await gamesQuery.ToListAsync();
+            // Apply pagination
+            var orderedGames = gamesQuery.OrderByDescending(g => g.Id);
+            var pagedGames = (await orderedGames.ToListAsync()).ToPagedList(page, pageSize);
+            
+            // Get owned games for current user
             HashSet<int> ownedGameIds = new HashSet<int>();
             if (User.Identity?.IsAuthenticated == true)
             {
@@ -121,15 +140,17 @@ namespace Gauniv.WebServer.Controllers
                 }
             }
 
+            // Set ViewBag for filter persistence
             ViewBag.Categories = await applicationDbContext.Categories.ToListAsync();
             ViewBag.OwnedGameIds = ownedGameIds;
             ViewBag.Search = search;
             ViewBag.CategoryId = categoryId;
             ViewBag.MinPrice = minPrice;
             ViewBag.MaxPrice = maxPrice;
+            ViewBag.MinSize = minSize;
             ViewBag.Owned = owned;
 
-            return View(games);
+            return View(pagedGames);
         }
 
         [Authorize]

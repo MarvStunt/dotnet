@@ -17,37 +17,37 @@
     <link rel="stylesheet" href="~/Gauniv.WebServer.styles.css" asp-append-version="true" />
     
 </head>
-<body>
+<body style="background: linear-gradient(135deg, #0f0f1e 0%, #1a1a2e 100%); margin: 0; padding: 0;">
     <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">Gauniv.WebServer</a>
+        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-dark" style="background: #0f0f1e; border-bottom: 2px solid rgba(76, 110, 245, 0.3); padding: 0.5rem 0; margin-bottom: 0;">
+            <div class="container-fluid" style="padding-left: 2rem; padding-right: 2rem;">
+                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index" style="color: #ffffff; font-weight: 700; font-size: 1.5rem;">🎮 Gauniv</a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
+                        aria-expanded="false" aria-label="Toggle navigation" style="border-color: #4c6ef5; background-color: #2d2d4d;">
                     <span class="navbar-toggler-icon"></span>
                 </button>
                 <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
                     <ul class="navbar-nav flex-grow-1">
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">🎮 Boutique</a>
+                            <a class="nav-link" asp-area="" asp-controller="Home" asp-action="Index" style="color: #b0b0c0; transition: color 0.3s; font-weight: 500;">Boutique</a>
                         </li>
                         @if (User.Identity?.IsAuthenticated == true)
                         {
                             <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="MyGames">📦 Mes Jeux</a>
+                                <a class="nav-link" asp-area="" asp-controller="Home" asp-action="MyGames" style="color: #b0b0c0; transition: color 0.3s; font-weight: 500;">Mes Jeux</a>
                             </li>
                         }
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Players">👥 Joueurs</a>
+                            <a class="nav-link" asp-area="" asp-controller="Home" asp-action="Players" style="color: #b0b0c0; transition: color 0.3s; font-weight: 500;">Joueurs</a>
                         </li>
                         @if (User.IsInRole("Admin"))
                         {
                             <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Admin">⚙️ Admin</a>
+                                <a class="nav-link" asp-area="" asp-controller="Home" asp-action="Admin" style="color: #b0b0c0; transition: color 0.3s; font-weight: 500;">Admin</a>
                             </li>
                         }
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="swagger" asp-action="index">📖 API</a>
+                            <a class="nav-link" asp-area="" asp-controller="swagger" asp-action="index" style="color: #b0b0c0; transition: color 0.3s; font-weight: 500;">API</a>
                         </li>
                     </ul>
                     <partial name="_LoginPartial" />
@@ -55,15 +55,15 @@
             </div>
         </nav>
     </header>
-    <div class="container">
-        <main role="main" class="pb-3">
+    <div style="min-height: calc(100vh - 200px);">
+        <main role="main" style="padding: 0; margin: 0;">
             @RenderBody()
         </main>
     </div>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2024 - Gauniv.WebServer - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+    <footer class="border-top" style="background: #0f0f1e; border-top: 2px solid rgba(76, 110, 245, 0.3); color: #9ca3af; padding: 2rem 0; margin-top: 3rem;">
+        <div class="container-fluid" style="padding: 0 2rem;">
+            &copy; 2024 - Gauniv - <a asp-area="" asp-controller="Home" asp-action="Privacy" style="color: #4c6ef5; text-decoration: none;">Privacy</a>
         </div>
     </footer>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>

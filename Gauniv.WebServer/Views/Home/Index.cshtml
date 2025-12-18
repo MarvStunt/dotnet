@@ -1,125 +1,206 @@
-﻿@model List<Gauniv.WebServer.Data.Game>
+﻿@using X.PagedList.Mvc.Core
+@model X.PagedList.IPagedList<Gauniv.WebServer.Data.Game>
 @{
     ViewData["Title"] = "Boutique de Jeux";
 }
 
-<div class="container">
-    <div class="text-center mb-4">
-        <h1 class="display-4">🎮 Boutique de Jeux Gauniv</h1>
-        <p class="lead">Découvrez notre collection de jeux</p>
+<div class="store-page">
+    <!-- Hero Section -->
+    <div class="hero-section">
+        <div class="container">
+            <h1 class="hero-title">Discover Games</h1>
+            <p class="hero-subtitle">Browse through our collection of amazing games</p>
+        </div>
     </div>
 
-    <!-- Filtres -->
-    <div class="filter-section">
-        <form method="get" asp-action="Index">
-            <div class="row g-3">
-                <div class="col-md-3">
-                    <label class="form-label">🔍 Rechercher</label>
-                    <input type="text" class="form-control" name="search" value="@ViewBag.Search" placeholder="Nom ou description...">
+    <div class="container store-container">
+        <!-- Search Bar -->
+        <div class="search-section">
+            <form method="get" asp-action="Index">
+                <div class="search-wrapper">
+                    <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.35-4.35"></path>
+                    </svg>
+                    <input type="text" class="search-input" name="search" value="@ViewBag.Search" placeholder="Search by name...">
                 </div>
-                <div class="col-md-2">
-                    <label class="form-label">📁 Catégorie</label>
-                    <select class="form-select" name="categoryId">
-                        <option value="">Toutes</option>
-                        @foreach (var category in (List<Gauniv.WebServer.Data.Category>)ViewBag.Categories)
-                        {
-                            <option value="@category.Id" selected="@(ViewBag.CategoryId == category.Id)">@category.Name</option>
-                        }
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label">💰 Prix Min</label>
-                    <input type="number" class="form-control" name="minPrice" value="@ViewBag.MinPrice" placeholder="0" step="0.01">
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label">💰 Prix Max</label>
-                    <input type="number" class="form-control" name="maxPrice" value="@ViewBag.MaxPrice" placeholder="999" step="0.01">
-                </div>
-                @if (User.Identity?.IsAuthenticated == true)
-                {
-                    <div class="col-md-2">
-                        <label class="form-label">📦 Possession</label>
-                        <select class="form-select" name="owned">
-                            <option value="">Tous</option>
-                            <option value="true" selected="@(ViewBag.Owned == true)">Possédés</option>
-                            <option value="false" selected="@(ViewBag.Owned == false)">Non possédés</option>
+
+                <!-- Filters Row 1: Category, Price Range, File Size -->
+                <div class="filters-row">
+                    <div class="filter-group">
+                        <label class="filter-label">📁 Category</label>
+                        <select class="filter-select" name="categoryId" onchange="this.form.submit()">
+                            <option value="">All Categories</option>
+                            @foreach (var category in (List<Gauniv.WebServer.Data.Category>)ViewBag.Categories)
+                            {
+                                <option value="@category.Id" selected="@(ViewBag.CategoryId == category.Id)">@category.Name</option>
+                            }
                         </select>
                     </div>
-                }
-                <div class="col-md-1 d-flex align-items-end">
-                    <button type="submit" class="btn btn-primary w-100">Filtrer</button>
-                </div>
-            </div>
-        </form>
-    </div>
 
-    <!-- Liste des jeux -->
-    @if (Model.Any())
-    {
-        <div class="row">
-            @foreach (var game in Model)
-            {
-                <div class="col-md-4 mb-4">
-                    <div class="card game-card">
-                        <div class="game-card-header">
-                            @game.Name
+                    <div class="filter-group">
+                        <label class="filter-label">💰 Min Price</label>
+                        <input type="number" class="filter-input" name="minPrice" value="@ViewBag.MinPrice" placeholder="0" step="0.01" min="0">
+                    </div>
+
+                    <div class="filter-group">
+                        <label class="filter-label">💰 Max Price</label>
+                        <input type="number" class="filter-input" name="maxPrice" value="@ViewBag.MaxPrice" placeholder="999" step="0.01" min="0">
+                    </div>
+
+                    <div class="filter-group">
+                        <label class="filter-label">📦 File Size (KB)</label>
+                        <input type="number" class="filter-input" name="minSize" value="@ViewBag.MinSize" placeholder="Min" step="1" min="0">
+                    </div>
+                </div>
+
+                <!-- Filters Row 2: Owned Status & Apply Button -->
+                <div class="filters-row" style="align-items: flex-end;">
+                    @if (User.Identity?.IsAuthenticated == true)
+                    {
+                        <div class="filter-group">
+                            <label class="filter-label">📦 Possession</label>
+                            <select class="filter-select" name="owned">
+                                <option value="">All Games</option>
+                                <option value="true" selected="@(ViewBag.Owned == true)">My Games Only</option>
+                                <option value="false" selected="@(ViewBag.Owned == false)">Not Owned</option>
+                            </select>
                         </div>
-                        <div class="game-card-body">
-                            <div class="game-description">
-                                @(game.Description.Length > 100 ? game.Description.Substring(0, 100) + "..." : game.Description)
+                    }
+
+                    <div class="filter-group" style="flex: 0 0 auto;">
+                        <button type="submit" class="btn-filter-apply">
+                            🔍 Apply Filters
+                        </button>
+                    </div>
+
+                    <div class="filter-group" style="flex: 0 0 auto;">
+                        <a href="@Url.Action("Index")" class="btn-filter-reset">
+                            ✕ Reset
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Games Grid -->
+        @if (Model.Any())
+        {
+            <div class="games-grid">
+                @foreach (var game in Model)
+                {
+                    <div class="game-card-modern">
+                        <div class="game-card-image">
+                            <div class="game-card-placeholder">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+                                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                    <path d="m21 15-5-5L5 21"></path>
+                                </svg>
                             </div>
-                            <div class="my-3">
-                                @foreach (var gc in game.GameCategories)
+                            @if (game.Price > 0)
+                            {
+                                <div class="game-card-discount">-25%</div>
+                            }
+                        </div>
+                        <div class="game-card-info">
+                            <h3 class="game-card-title">@game.Name</h3>
+                            <p class="game-card-description">
+                                @(game.Description.Length > 80 ? game.Description.Substring(0, 80) + "..." : game.Description)
+                            </p>
+                            <div class="game-card-price">
+                                @game.Price.ToString("C")
+                            </div>
+                            @if (User.Identity?.IsAuthenticated == true)
+                            {
+                                var isOwned = ((HashSet<int>)ViewBag.OwnedGameIds).Contains(game.Id);
+                                if (isOwned)
                                 {
-                                    <span class="category-badge">@gc.Category.Name</span>
-                                }
-                            </div>
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div class="game-price">@game.Price.ToString("C")</div>
-                                <div>
-                                    <span class="text-muted small">📦 @(game.Payload.Length / 1024) KB</span>
-                                </div>
-                            </div>
-                            <div class="mt-3">
-                                @if (User.Identity?.IsAuthenticated == true)
-                                {
-                                    var isOwned = ((HashSet<int>)ViewBag.OwnedGameIds).Contains(game.Id);
-                                    if (isOwned)
-                                    {
-                                        <div class="alert alert-success mb-2 py-2">
-                                            ✅ <strong>Possédé</strong>
-                                        </div>
-                                        <a asp-action="MyGames" class="btn btn-outline-primary w-100">
-                                            📚 Voir dans ma bibliothèque
+                                    <div class="game-card-owned">
+                                        <span>✅ Owned</span>
+                                        <a asp-action="MyGames" class="btn-secondary">
+                                            View in Library
                                         </a>
-                                    }
-                                    else
-                                    {
-                                        <button class="btn btn-success w-100" onclick="purchaseGame(@game.Id, '@game.Name')">
-                                            💳 Acheter
-                                        </button>
-                                    }
+                                    </div>
                                 }
                                 else
                                 {
-                                    <a asp-area="Identity" asp-page="/Account/Login" class="btn btn-primary w-100">
-                                        🔐 Connexion requise
-                                    </a>
+                                    <button class="btn-purchase" onclick="purchaseGame(@game.Id, '@game.Name')">
+                                        💳 Buy
+                                    </button>
                                 }
-                            </div>
+                            }
+                            else
+                            {
+                                <a asp-area="Identity" asp-page="/Account/Login" class="btn-purchase">
+                                    🔐 Login Required
+                                </a>
+                            }
                         </div>
                     </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="no-games-found">
+                <h3>😕 No games found</h3>
+                <p>Try adjusting your search filters.</p>
+            </div>
+        }
+
+        <!-- Pagination -->
+        @if (Model.PageCount > 1)
+        {
+            <div class="pagination-container">
+                <nav aria-label="Page navigation" class="pagination-nav">
+                    <ul class="pagination-list">
+                        @if (Model.HasPreviousPage)
+                        {
+                            <li class="pagination-item">
+                                <a class="pagination-link pagination-link-prev" 
+                                   href="@Url.Action("Index", new { page = Model.PageNumber - 1, search = ViewBag.Search, categoryId = ViewBag.CategoryId, minPrice = ViewBag.MinPrice, maxPrice = ViewBag.MaxPrice, minSize = ViewBag.MinSize, owned = ViewBag.Owned })">
+                                    ← Previous
+                                </a>
+                            </li>
+                        }
+
+                        @for (int i = Math.Max(1, Model.PageNumber - 2); i <= Math.Min(Model.PageCount, Model.PageNumber + 2); i++)
+                        {
+                            <li class="pagination-item">
+                                @if (i == Model.PageNumber)
+                                {
+                                    <span class="pagination-link pagination-link-active">@i</span>
+                                }
+                                else
+                                {
+                                    <a class="pagination-link" 
+                                       href="@Url.Action("Index", new { page = i, search = ViewBag.Search, categoryId = ViewBag.CategoryId, minPrice = ViewBag.MinPrice, maxPrice = ViewBag.MaxPrice, minSize = ViewBag.MinSize, owned = ViewBag.Owned })">
+                                        @i
+                                    </a>
+                                }
+                            </li>
+                        }
+
+                        @if (Model.HasNextPage)
+                        {
+                            <li class="pagination-item">
+                                <a class="pagination-link pagination-link-next" 
+                                   href="@Url.Action("Index", new { page = Model.PageNumber + 1, search = ViewBag.Search, categoryId = ViewBag.CategoryId, minPrice = ViewBag.MinPrice, maxPrice = ViewBag.MaxPrice, minSize = ViewBag.MinSize, owned = ViewBag.Owned })">
+                                    Next →
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                </nav>
+
+                <div class="pagination-info">
+                    Showing page <strong>@Model.PageNumber</strong> of <strong>@Model.PageCount</strong> 
+                    (Total: <strong>@Model.TotalItemCount</strong> games)
                 </div>
-            }
-        </div>
-    }
-    else
-    {
-        <div class="alert alert-info text-center">
-            <h4>😕 Aucun jeu trouvé</h4>
-            <p>Essayez de modifier vos filtres de recherche.</p>
-        </div>
-    }
+            </div>
+        }
+    </div>
 </div>
 
 @section Scripts {
