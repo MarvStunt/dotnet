@@ -1,0 +1,117 @@
+[gd_scene load_steps=3 format=3 uid="uid://d3qwxm6xcta"]
+
+[ext_resource type="Script" path="res://ResultPanel.cs" id="uid://c8pq8yf2cejk9"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_cbhg1"]
+bg_color = Color(0.1, 0.1, 0.1, 0.95)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+
+[node name="ResultPanel" type="Panel"]
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 0.0
+offset_bottom = 0.0
+custom_minimum_size = Vector2(0, 0)
+theme_override_styles/panel = SubResource("StyleBoxFlat_cbhg1")
+script = ExtResource("uid://c8pq8yf2cejk9")
+
+[node name="ResultMargin" type="MarginContainer" parent="."]
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 0.0
+offset_bottom = 0.0
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="ResultVBox" type="VBoxContainer" parent="ResultMargin"]
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 0.0
+offset_bottom = 0.0
+custom_minimum_size = Vector2(0, 0)
+theme_override_constants/separation = 15
+
+[node name="TitleLabel" type="Label" parent="ResultMargin/ResultVBox"]
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 1080.0
+offset_bottom = 40.0
+theme_override_font_sizes/font_size = 32
+text = "🏁 GAME FINISHED!"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="MessageLabel" type="Label" parent="ResultMargin/ResultVBox"]
+offset_left = 0.0
+offset_top = 55.0
+offset_right = 1080.0
+offset_bottom = 75.0
+theme_override_font_sizes/font_size = 18
+text = "Final Results"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="LeaderboardContainer" type="PanelContainer" parent="ResultMargin/ResultVBox"]
+offset_left = 0.0
+offset_top = 90.0
+offset_right = 1080.0
+offset_bottom = 550.0
+size_flags_vertical = 3
+
+[node name="LeaderboardMargin" type="MarginContainer" parent="ResultMargin/ResultVBox/LeaderboardContainer"]
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 0.0
+offset_bottom = 0.0
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="LeaderboardVBox" type="VBoxContainer" parent="ResultMargin/ResultVBox/LeaderboardContainer/LeaderboardMargin"]
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 0.0
+offset_bottom = 0.0
+theme_override_constants/separation = 10
+
+[node name="Buttons" type="HBoxContainer" parent="ResultMargin/ResultVBox"]
+offset_left = 0.0
+offset_top = 565.0
+offset_right = 1080.0
+offset_bottom = 600.0
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="BackToHubButton" type="Button" parent="ResultMargin/ResultVBox/Buttons"]
+offset_left = 370.0
+offset_top = 0.0
+offset_right = 710.0
+offset_height = 35.0
+text = "🏠 Back to Hub"
+theme_override_font_sizes/font_size = 16

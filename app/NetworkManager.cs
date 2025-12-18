@@ -59,6 +59,9 @@ public partial class NetworkManager : Control
     [Signal]
     public delegate void OperationFailedEventHandler(string error, string invocationId);
 
+    [Signal]
+    public delegate void PlayerListReceivedEventHandler(string playerListJson);
+
     public override void _Ready()
     {
         playerId = Guid.NewGuid().ToString();
@@ -277,6 +280,15 @@ public partial class NetworkManager : Control
                 }
                 break;
 
+            case "PlayerListReceived":
+                if (arguments.GetArrayLength() > 0)
+                {
+                    string playerListJson = arguments[0].GetRawText();
+                    EmitSignal(SignalName.PlayerListReceived, playerListJson);
+                    GD.Print($"Player list received from server: {playerListJson}");
+                }
+                break;
+
             default:
                 GD.Print($"Unknown invocation target: {target}");
                 break;
@@ -463,6 +475,23 @@ public partial class NetworkManager : Control
 
         SendMessage(message);
         GD.Print($"Requesting leaderboard");
+    }
+
+    /// <summary>
+    /// Get the current player list with roles
+    /// </summary>
+    public void GetPlayerList()
+    {
+        var message = new
+        {
+            type = 1,
+            target = "GetPlayerList",
+            arguments = new object[] { gameId },
+            invocationId = Guid.NewGuid().ToString()
+        };
+
+        SendMessage(message);
+        GD.Print($"Requesting player list");
     }
 
     /// <summary>

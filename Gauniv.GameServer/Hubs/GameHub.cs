@@ -57,6 +57,18 @@ namespace Gauniv.GameServer.Hubs
 
             _dbContext.GameSessions.Add(session);
             await _dbContext.SaveChangesAsync();
+
+            // Add the master as a player in the game
+            var masterPlayer = new GamePlayer
+            {
+                GameSessionId = session.Id,
+                PlayerName = gameMasterName,
+                ConnectionId = Context.ConnectionId
+            };
+
+            _dbContext.GamePlayers.Add(masterPlayer);
+            await _dbContext.SaveChangesAsync();
+
             await Groups.AddToGroupAsync(Context.ConnectionId, $"game_{session.Id}");
 
             Console.WriteLine($"🎮 Game created: {session.Code} by {gameMasterName}");
@@ -222,6 +234,20 @@ namespace Gauniv.GameServer.Hubs
             await Clients.Group($"game_{session.Id}")
                 .SendAsync("PlayerJoined", playerName, player.Id);
 
+            // Send the complete player list with roles to all clients
+            var playerList = session.Players
+                .Select(p => new
+                {
+                    playerName = p.PlayerName,
+                    role = p.PlayerName == session.GameMasterName ? "master" : "player",
+                    score = p.Score,
+                    isConnected = p.IsConnected
+                })
+                .ToList();
+
+            await Clients.Group($"game_{session.Id}")
+                .SendAsync("PlayerListReceived", playerList);
+
             Console.WriteLine($"👤 {playerName} joined game {gameCode}");
             Console.WriteLine("Current players in the lobby:");
             foreach (var p in session.Players)
@@ -295,6 +321,33 @@ namespace Gauniv.GameServer.Hubs
                 .SendAsync("PlayerSubmitted", player.PlayerName, isCorrect, pointsEarned, player.Score);
 
             Console.WriteLine($"📝 {player.PlayerName}: {(isCorrect ? "✓" : "✗")} (+{pointsEarned}pts, total: {player.Score})");
+        }
+
+        /// <summary>
+        /// Get the list of players with their roles
+        /// </summary>
+        public async Task GetPlayerList(string gameCode)
+        {
+            var session = await _dbContext.GameSessions
+                .Include(gs => gs.Players)
+                .FirstOrDefaultAsync(gs => gs.Code == gameCode);
+
+            if (session == null)
+                throw new HubException("Game not found");
+
+            var playerList = session.Players
+                .Select(p => new
+                {
+                    playerName = p.PlayerName,
+                    role = p.PlayerName == session.GameMasterName ? "master" : "player",
+                    score = p.Score,
+                    isConnected = p.IsConnected
+                })
+                .ToList();
+
+            await Clients.Caller.SendAsync("PlayerListReceived", playerList);
+            
+            Console.WriteLine($"📋 Sent player list to {Context.ConnectionId}: {playerList.Count} players");
         }
 
         /// <summary>

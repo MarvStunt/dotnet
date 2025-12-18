@@ -1,4 +1,5 @@
 using Godot;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -15,9 +16,13 @@ public partial class Game : Control
 	private Label labelInfo;
 	private Label roleLabel;
 	private Label gameIdLabel;
+	private Label gameInfoLabel;
+	private Label playersCountLabel;
+	private Label roundInfoLabel;
 	private Label sequenceLabel;
 	private Label feedbackLabel;
 	private Label playerName;
+	private Label gameStatusLabel;
 	private Button sendSequenceButton;
 	private Button nextRoundButton;
 	private Button disconnectButton;
@@ -25,11 +30,10 @@ public partial class Game : Control
 	private Button endGameButton;
 	private Button copyGameIdButton;
 	private NetworkManager networkManager;
-	private ResultPanel resultPanel;
 	private Control masterSection;
 	private Control playerSection;
-	private Button retryButton;
-	private Button hubButton;
+	private VBoxContainer playersList;
+	private Dictionary<string, Label> playersLabels = new(); // Key is playerName, not playerId
 
 	private int playerResponseCount = 0;
 
@@ -37,48 +41,46 @@ public partial class Game : Control
 
 	public override void _Ready()
 	{
-		masterSection = GetNode<Control>("Main/Game Area/Master Section");
-		playerSection = GetNode<Control>("Main/Game Area/Player Section");
-		sequenceLabel = GetNode<Label>("Main/Game Area/Master Section/SequenceLabel");
-		feedbackLabel = GetNode<Label>("Main/Game Area/Player Section/FeedbackLabel");
-		sendSequenceButton = GetNode<Button>("Main/Game Area/Master Section/SendSequenceButton");
-		nextRoundButton = GetNode<Button>("Main/Game Area/Master Section/NextRoundButton");
-		disconnectButton = GetNode<Button>("Main/Status/DisconnectButton");
-		roleLabel = GetNode<Label>("Main/Status/RoleLabel");
-		gameIdLabel = GetNode<Label>("Main/Status/StateLabel");
-		playerName = GetNode<Label>("Main/Status/PlayerName");
-		copyGameIdButton = GetNode<Button>("Main/Status/CopyGameIdButton");
-		resultPanel = GetNode<ResultPanel>("Main/ResultPanel");
+		// Get UI elements from new layout
+		masterSection = GetNode<Control>("MainVBox/Content/GamePanel/GameMargin/GameVBox/ControlsSection/MasterSection");
+		playerSection = GetNode<Control>("MainVBox/Content/GamePanel/GameMargin/GameVBox/ControlsSection/PlayerSection");
+		
+		// Labels
+		sequenceLabel = GetNode<Label>("MainVBox/Content/GamePanel/GameMargin/GameVBox/ControlsSection/SequenceLabel");
+		feedbackLabel = GetNode<Label>("MainVBox/Content/GamePanel/GameMargin/GameVBox/ControlsSection/FeedbackLabel");
+		labelInfo = GetNode<Label>("MainVBox/Content/GamePanel/GameMargin/GameVBox/GameStatus");
+		
+		// Header labels
+		roleLabel = GetNode<Label>("MainVBox/Header/StatusSection/RoleLabel");
+		gameInfoLabel = GetNode<Label>("MainVBox/Header/TitleBox/GameInfo");
+		playersCountLabel = GetNode<Label>("MainVBox/Header/StatusSection/PlayersCount");
+		roundInfoLabel = GetNode<Label>("MainVBox/Header/StatusSection/RoundInfo");
+		playerName = GetNode<Label>("MainVBox/Header/StatusSection/PlayerName");
+		gameIdLabel = GetNode<Label>("MainVBox/Header/TitleBox/GameInfo");
+		
+		// Buttons
+		sendSequenceButton = GetNode<Button>("MainVBox/Content/GamePanel/GameMargin/GameVBox/ControlsSection/MasterSection/MasterControlsHBox/SendSequenceButton");
+		nextRoundButton = GetNode<Button>("MainVBox/Content/GamePanel/GameMargin/GameVBox/ControlsSection/MasterSection/MasterControlsHBox/NextRoundButton");
+		disconnectButton = GetNode<Button>("MainVBox/Header/ActionButtons/DisconnectButton");
+		copyGameIdButton = GetNode<Button>("MainVBox/Header/ActionButtons/CopyGameIdButton");
+		startGameButton = GetNode<Button>("MainVBox/Content/GamePanel/GameMargin/GameVBox/ControlsSection/MasterSection/GameStartEndHBox/StartGameButton");
+		endGameButton = GetNode<Button>("MainVBox/Content/GamePanel/GameMargin/GameVBox/ControlsSection/MasterSection/GameStartEndHBox/EndGameButton");
+		
+		// Players list
+		playersList = GetNode<VBoxContainer>("MainVBox/Content/PlayersPanel/PlayersMargin/PlayersVBox/PlayersList");
 
-		startGameButton = GetNode<Button>("Main/Game Area/Master Section/StartGameButton");
-		endGameButton = GetNode<Button>("Main/Game Area/Master Section/EndGameButton");
-
-		Godot.Collections.Array<Node> masterButtons = GetNode("Main/Game Area/Master Section/Buttons").GetChildren();
-		Godot.Collections.Array<Node> playerButtons = GetNode("Main/Game Area/Player Section/Buttons").GetChildren();
+		// Get color buttons from unified section
+		Godot.Collections.Array<Node> colorButtons = GetNode("MainVBox/Content/GamePanel/GameMargin/GameVBox/ControlsSection/SequenceButtonsGrid").GetChildren();
 
 		buttons = new Godot.Collections.Array<Node>();
-		foreach (Node btn in masterButtons)
+		foreach (Node btn in colorButtons)
 			buttons.Add(btn);
-		foreach (Node btn in playerButtons)
-			buttons.Add(btn);
-
-		if (HasNode("Main/Game Area/Master Section/Label"))
-			labelInfo = GetNode<Label>("Main/Game Area/Master Section/Label");
-		if (HasNode("Main/Game Area/Player Section/Joueur"))
-			labelInfo = GetNode<Label>("Main/Game Area/Player Section/Joueur");
 
 		if (GetTree().Root.HasNode("NetworkManager"))
 		{
 			networkManager = GetTree().Root.GetNode<NetworkManager>("NetworkManager");
 			isMaster = networkManager.PlayerRole == "master";
 			ConnectNetworkSignals();
-		}
-
-		// Get result panel buttons from ResultPanel
-		if (resultPanel != null)
-		{
-			retryButton = resultPanel.GetNode<Button>("VBoxContainer/Buttons/RetryButton");
-			hubButton = resultPanel.GetNode<Button>("VBoxContainer/Buttons/BackToHubButton");
 		}
 
 		if (disconnectButton != null)
@@ -93,11 +95,6 @@ public partial class Game : Control
 			endGameButton.Pressed += OnEndGamePressed;
 		if (copyGameIdButton != null)
 			copyGameIdButton.Pressed += OnCopyGameIdPressed;
-		if (resultPanel != null && retryButton != null && hubButton != null)
-		{
-			retryButton.Pressed += OnRetryPressed;
-			hubButton.Pressed += OnHubPressed;
-		}
 
 		ConnectButtons();
 		DisableAllGameButtons();
@@ -111,10 +108,24 @@ public partial class Game : Control
 
 		if (roleLabel != null)
 			roleLabel.Text = isMaster ? "👑 MASTER" : "🎮 PLAYER";
+		if (gameInfoLabel != null && networkManager != null)
+			gameInfoLabel.Text = $"Game: {networkManager.GameId}";
 		if (gameIdLabel != null && networkManager != null)
 			gameIdLabel.Text = $"Game: {networkManager.GameId}";
 		if (playerName != null && networkManager != null)
-			playerName.Text = networkManager.PlayerName;
+			playerName.Text = $"Player: {networkManager.PlayerName}";
+		if (playersCountLabel != null)
+			playersCountLabel.Text = $"Players: {connectedPlayers}";
+		if (roundInfoLabel != null)
+			roundInfoLabel.Text = $"Round: {roundNumber}";
+		
+		// Request the full player list from the server
+		if (networkManager != null)
+		{
+			networkManager.GetPlayerList();
+		}
+		
+		// Toggle visibility of master and player sections
 		if (masterSection != null)
 			masterSection.Visible = isMaster;
 		if (playerSection != null)
@@ -124,12 +135,15 @@ public partial class Game : Control
 		{
 			if (labelInfo != null)
 				labelInfo.Text = "Waiting for players to join... ⏳";
-			// Don't start game automatically - wait for players
+			if (feedbackLabel != null)
+				feedbackLabel.Visible = false;
 		}
 		else
 		{
 			if (labelInfo != null)
 				labelInfo.Text = "Waiting for master...";
+			if (sequenceLabel != null)
+				sequenceLabel.Visible = false;
 		}
 	}
 
@@ -160,6 +174,7 @@ public partial class Game : Control
 		networkManager.PlayerSubmitted += OnPlayerSubmitted;
 		networkManager.GameEnded += OnGameEnded;
 		networkManager.PlayerJoined += OnPlayerJoined;
+		networkManager.PlayerListReceived += OnPlayerListReceived;
 
 		GD.Print("Network signals connected");
 	}
@@ -168,6 +183,13 @@ public partial class Game : Control
 	private void OnRoundChanged(int newRoundNumber)
 	{
 		GD.Print($"Game: Round changed to {newRoundNumber}");
+
+		roundNumber = newRoundNumber;
+		
+		if (roundInfoLabel != null)
+			roundInfoLabel.Text = $"Round: {roundNumber}";
+
+		ClearPlayerFeedback();
 
 		if (isMaster)
 		{
@@ -180,7 +202,6 @@ public partial class Game : Control
 				labelInfo.Text = $"Round {newRoundNumber}\nClick buttons to build sequence 🎯";
 			GD.Print($"Master: Ready to build sequence for round {newRoundNumber}");
 			EnableGameButtons();
-			roundNumber = newRoundNumber;
 		}
 		else
 		{
@@ -200,26 +221,50 @@ public partial class Game : Control
 	// Handler for player submission result from server
 	public void OnPlayerSubmitted(string playerNameReceived, bool isCorrect, int pointsEarned, int totalScore)
 	{
-		if (playerName.Text == playerNameReceived)
+		// Get current player name from NetworkManager
+		string currentPlayerName = networkManager != null ? networkManager.PlayerName : "";
+		
+		if (currentPlayerName == playerNameReceived)
 		{
-			GD.Print($"Game: {playerName.Text} submitted - {isCorrect} (+{pointsEarned}pts, total: {totalScore})");
+			GD.Print($"Game: {playerNameReceived} submitted - {isCorrect} (+{pointsEarned}pts, total: {totalScore})");
 			if (isCorrect)
 			{
-				labelInfo.Text = $"✅ {playerName.Text}: Correct! +{pointsEarned}pts (Total: {totalScore})";
+				labelInfo.Text = $"✅ Correct! +{pointsEarned}pts (Total: {totalScore})";
 			}
 			else
 			{
-				labelInfo.Text = $"❌ {playerName.Text}: Wrong! (Total: {totalScore})";
+				labelInfo.Text = $"❌ Wrong! (Total: {totalScore})";
 			}
 			// Disable player input until next turn
 			isPlayerTurn = false;
 			DisablePlayerButtons();
 		}
 
+		// Update player list with feedback - find the player by name and update their label
+		if (playersLabels.ContainsKey(playerNameReceived))
+		{
+			Label playerLabel = playersLabels[playerNameReceived];
+			if (isCorrect)
+			{
+				playerLabel.Text = $"🎮 {playerNameReceived} ✅";
+				playerLabel.AddThemeColorOverride("font_color", new Color(0.2f, 1, 0.4f, 1));
+			}
+			else
+			{
+				playerLabel.Text = $"🎮 {playerNameReceived} ❌";
+				playerLabel.AddThemeColorOverride("font_color", new Color(1, 0.3f, 0.3f, 1));
+			}
+			GD.Print($"Updated player list for {playerNameReceived}: {(isCorrect ? "✅" : "❌")}");
+		}
+		else
+		{
+			GD.PrintErr($"Player {playerNameReceived} not found in player list!");
+		}
+
 		if (isMaster)
 		{
 			playerResponseCount++;
-			if (playerResponseCount == connectedPlayers)
+			if (playerResponseCount == connectedPlayers - 1)
 			{
 				nextRoundButton.Disabled = false;
 				if (roundNumber >= 3)
@@ -245,15 +290,15 @@ public partial class Game : Control
 		foreach (var entry in leaderboard)
 		{
 			var playerData = (Godot.Collections.Dictionary)entry;
-			string playerName = playerData["playerName"].AsString();
+			string playerNameStr = playerData["playerName"].AsString();
 			int score = (int)playerData["score"].AsInt64();
 
-			GD.Print($"Processing: {playerName} with score {score}");
+			GD.Print($"Processing: {playerNameStr} with score {score}");
 
 			if (score > bestScore)
 			{
 				bestScore = score;
-				winner = playerName;
+				winner = playerNameStr;
 			}
 		}
 
@@ -261,27 +306,23 @@ public partial class Game : Control
 		isPlayerTurn = false;
 
 		// Find current player's score
+		string currentPlayerName = networkManager != null ? networkManager.PlayerName : "";
 		int playerScore = 0;
 		foreach (var entry in leaderboard)
 		{
 			var playerData = (Godot.Collections.Dictionary)entry;
-			if (playerData["playerName"].AsString() == playerName.Text)
+			if (playerData["playerName"].AsString() == currentPlayerName)
 			{
 				playerScore = (int)playerData["score"].AsInt64();
 				break;
 			}
 		}
 
-		if (playerName.Text == winner)
-		{
-			if (resultPanel != null)
-				resultPanel.ShowWon("🎉 GG SKILL DIFF! 🎉", playerScore);
-		}
-		else
-		{
-			if (resultPanel != null)
-				resultPanel.ShowLost("😞 GROS NUL! 😞", playerScore);
-		}
+		// Store leaderboard data for ResultPanel
+		ResultPanelData.LeaderboardJson = leaderboardJson;
+
+		// Load ResultPanel scene with deferred call
+		GetTree().CallDeferred("change_scene_to_file", "res://ResultPanel.tscn");
 	}
 
 	private void AddColorToSequence()
@@ -343,25 +384,21 @@ public partial class Game : Control
 	// Flash only player buttons with the correct index
 	private async Task FlashPlayerButton(int index)
 	{
-		if (playerSection == null)
+		if (index < 0 || index >= buttons.Count)
 			return;
 
-		Godot.Collections.Array<Node> playerButtons = playerSection.GetNode("Buttons").GetChildren();
-
-		if (index < 0 || index >= playerButtons.Count)
-			return;
-
-		ColorButton btn = playerButtons[index] as ColorButton;
+		ColorButton btn = buttons[index] as ColorButton;
 		if (btn == null)
 			return;
 
+		float flashTime = 0.5f;
 		// Enable button
 		btn.Disabled = false;
-		await ToSignal(GetTree().CreateTimer(0.5f), "timeout");
+		await ToSignal(GetTree().CreateTimer(flashTime), "timeout");
 
 		// Disable button
 		btn.Disabled = true;
-		await ToSignal(GetTree().CreateTimer(0.2f), "timeout");
+		await ToSignal(GetTree().CreateTimer(flashTime), "timeout");
 	}
 
 	private async void OnButtonPressed(int index)
@@ -396,6 +433,7 @@ public partial class Game : Control
 			SendAnswerToServer(playerInput.ToArray());
 			labelInfo.Text = "Validating with server...";
 			isPlayerTurn = false;
+			DisablePlayerButtons();
 		}
 	}
 
@@ -448,19 +486,8 @@ public partial class Game : Control
 	public void OnRetryPressed()
 	{
 		GD.Print("Retry pressed");
-		if (resultPanel != null)
-			resultPanel.Visible = false;
-
-
-		if (isMaster)
-		{
-			StartMasterGame();
-		}
-		else
-		{
-			if (labelInfo != null)
-				labelInfo.Text = "Waiting for master...";
-		}
+		// Return to Game scene to play again
+		GetTree().ChangeSceneToFile("res://Game.tscn");
 	}
 
 	public void OnHubPressed()
@@ -555,11 +582,8 @@ public partial class Game : Control
 
 	private void DisablePlayerButtons()
 	{
-		if (playerSection == null)
-			return;
-
-		Godot.Collections.Array<Node> playerButtons = playerSection.GetNode("Buttons").GetChildren();
-		foreach (Node btn in playerButtons)
+		// Disable all color buttons (unified button grid)
+		foreach (Node btn in buttons)
 		{
 			if (btn is ColorButton colorBtn)
 				colorBtn.Disabled = true;
@@ -570,19 +594,155 @@ public partial class Game : Control
 
 	public void OnPlayerJoined(string playerName, string playerId)
 	{
-		connectedPlayers++;
-		GD.Print($"Game: Player joined - {playerName} (ID: {playerId}), Total: {connectedPlayers}");
+		GD.Print($"Game: Player joined - {playerName} (ID: {playerId})");
 
-		if (isMaster && labelInfo != null)
+		// The server will send the complete player list with roles via PlayerListReceived
+		// so we don't need to manually add players here - just update the UI
+
+		if (labelInfo != null)
 		{
-			labelInfo.Text = $"Players connected: {connectedPlayers} 👥\nClick 'Start Game' to begin!";
+			labelInfo.Text = $"✅ {playerName} joined!";
 		}
 
-		// Enable start button when at least 1 player connected
+		// Enable start button when at least 1 other player connected (besides master)
 		if (startGameButton != null && isMaster)
 		{
-			startGameButton.Disabled = (connectedPlayers == 0);
+			startGameButton.Disabled = false; // Enable if we have at least 1 player
 		}
+	}
+
+	private void AddPlayerToList(string playerName)
+	{
+		if (playersList == null)
+			return;
+
+		// Don't add duplicate if already in list
+		if (playersLabels.ContainsKey(playerName))
+		{
+			GD.Print($"Player {playerName} already in list");
+			return;
+		}
+
+		// Remove empty label if it exists
+		if (playersList.GetChildCount() == 1 && playersList.GetChild(0) is Label emptyLabel && emptyLabel.Text.Contains("No players"))
+		{
+			playersList.RemoveChild(emptyLabel);
+			emptyLabel.QueueFree();
+		}
+
+		// Create a label for the player
+		Label playerLabel = new Label();
+		playerLabel.Text = $"🎮 {playerName}";
+		playerLabel.AddThemeColorOverride("font_color", new Color(0.2f, 1, 0.4f, 1));
+		playerLabel.AddThemeFontSizeOverride("font_size", 14);
+		playerLabel.HorizontalAlignment = HorizontalAlignment.Left;
+		
+		playersList.AddChild(playerLabel);
+		playersLabels[playerName] = playerLabel;
+
+		GD.Print($"Added player {playerName} to list");
+	}
+
+	public void OnPlayerListReceived(string playerListJson)
+	{
+		GD.Print($"Player list received: {playerListJson}");
+
+		try
+		{
+			var json = new Json();
+			json.Parse(playerListJson);
+			var playerList = (Godot.Collections.Array)json.Data;
+
+			// Clear the old player list display
+			foreach (Node child in playersList.GetChildren())
+			{
+				playersList.RemoveChild(child);
+				child.QueueFree();
+			}
+			playersLabels.Clear();
+
+			// Add all players from the server's player list with their roles
+			foreach (var entry in playerList)
+			{
+				var playerData = (Godot.Collections.Dictionary)entry;
+				string playerNameStr = playerData["playerName"].AsString();
+				string roleStr = playerData.ContainsKey("role") ? playerData["role"].AsString() : "player";
+
+				// Create display name with role indicator
+				string displayName = roleStr == "master" ? $"👑 {playerNameStr}" : $"🎮 {playerNameStr}";
+				AddPlayerToListWithRole(playerNameStr, displayName, roleStr);
+			}
+
+			// Update player count
+			if (playersCountLabel != null)
+				playersCountLabel.Text = $"Players: {playerList.Count}";
+			
+			connectedPlayers = playerList.Count;
+
+			GD.Print($"Player list refreshed: {playerList.Count} players");
+		}
+		catch (Exception ex)
+		{
+			GD.PrintErr($"Error processing player list: {ex.Message}");
+		}
+	}
+
+	private void AddPlayerToListWithRole(string playerName, string displayName, string role)
+	{
+		if (playersList == null)
+			return;
+
+		// Don't add duplicate if already in list
+		if (playersLabels.ContainsKey(playerName))
+		{
+			GD.Print($"Player {playerName} already in list");
+			return;
+		}
+
+		// Remove empty label if it exists
+		if (playersList.GetChildCount() == 1 && playersList.GetChild(0) is Label emptyLabel && emptyLabel.Text.Contains("No players"))
+		{
+			playersList.RemoveChild(emptyLabel);
+			emptyLabel.QueueFree();
+		}
+
+		// Create a label for the player
+		Label playerLabel = new Label();
+		playerLabel.Text = displayName;
+		
+		// Master color is golden/yellow, player color is green
+		Color textColor = role == "master" ? new Color(1, 0.84f, 0, 1) : new Color(0.2f, 1, 0.4f, 1);
+		playerLabel.AddThemeColorOverride("font_color", textColor);
+		playerLabel.AddThemeFontSizeOverride("font_size", 14);
+		playerLabel.HorizontalAlignment = HorizontalAlignment.Left;
+		
+		playersList.AddChild(playerLabel);
+		playersLabels[playerName] = playerLabel;
+
+		GD.Print($"Added player {playerName} to list (role: {role})");
+	}
+
+	private void ClearPlayerFeedback()
+	{
+		// Remove ✅/❌ feedback from all player labels
+		foreach (var kvp in playersLabels)
+		{
+			string playerName = kvp.Key;
+			Label playerLabel = kvp.Value;
+			
+			// Get the player's role to determine the emoji
+			bool isMasterRole = playerLabel.Text.Contains("👑");
+			string emoji = isMasterRole ? "👑" : "🎮";
+			
+			// Reset the label to just name + emoji without feedback
+			playerLabel.Text = $"{emoji} {playerName}";
+			
+			// Reset color to default (golden for master, green for player)
+			Color textColor = isMasterRole ? new Color(1, 0.84f, 0, 1) : new Color(0.2f, 1, 0.4f, 1);
+			playerLabel.AddThemeColorOverride("font_color", textColor);
+		}
+		
+		GD.Print("Cleared player feedback icons for new round");
 	}
 
 	public void OnStartGamePressed()
