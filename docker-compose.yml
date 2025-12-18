@@ -15,7 +15,7 @@ services:
           - ConnectionStrings:DefaultConnection=Server=postgres_primary;Port=5432;Database=db;Username=admin;Password=password
           # - ConnectionStrings:redis=redis-sentinel:26379,serviceName=mymaster,password=redis
         ports:
-          - "80"
+          - "8457:80"
         depends_on:
           - postgres_primary
     gauniv.gameserver:
