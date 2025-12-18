@@ -48,7 +48,7 @@ public partial class NetworkManager : Control
     public delegate void GameEndedEventHandler(string leaderboardJson);
 
     [Signal]
-    public delegate void PlayerJoinedEventHandler(string playerName, string playerId);
+    public delegate void PlayerJoinedEventHandler(string playerName);
 
     [Signal]
     public delegate void PlayerDisconnectedEventHandler(string playerName);
@@ -253,9 +253,8 @@ public partial class NetworkManager : Control
                 if (arguments.GetArrayLength() > 1)
                 {
                     string playerName = arguments[0].GetString();
-                    string playerId = arguments[1].GetString();
-                    EmitSignal(SignalName.PlayerJoined, playerName, playerId);
-                    GD.Print($"Player joined: {playerName} (ID: {playerId})");
+                    EmitSignal(SignalName.PlayerJoined, playerName);
+                    GD.Print($"Player joined: {playerName})");
                 }
                 break;
 

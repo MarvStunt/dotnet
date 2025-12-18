@@ -33,7 +33,7 @@ public partial class Game : Control
 	private Control masterSection;
 	private Control playerSection;
 	private VBoxContainer playersList;
-	private Dictionary<string, Label> playersLabels = new(); // Key is playerName, not playerId
+	private List<Player> players = new();
 
 	private int playerResponseCount = 0;
 
@@ -241,19 +241,10 @@ public partial class Game : Control
 		}
 
 		// Update player list with feedback - find the player by name and update their label
-		if (playersLabels.ContainsKey(playerNameReceived))
+		Player p = players.FirstOrDefault(pl => pl.MatchesName(playerNameReceived));
+		if (p != null)
 		{
-			Label playerLabel = playersLabels[playerNameReceived];
-			if (isCorrect)
-			{
-				playerLabel.Text = $"🎮 {playerNameReceived} ✅";
-				playerLabel.AddThemeColorOverride("font_color", new Color(0.2f, 1, 0.4f, 1));
-			}
-			else
-			{
-				playerLabel.Text = $"🎮 {playerNameReceived} ❌";
-				playerLabel.AddThemeColorOverride("font_color", new Color(1, 0.3f, 0.3f, 1));
-			}
+			p.SetFeedback(isCorrect);
 			GD.Print($"Updated player list for {playerNameReceived}: {(isCorrect ? "✅" : "❌")}");
 		}
 		else
@@ -592,9 +583,9 @@ public partial class Game : Control
 		GD.Print("Player buttons disabled");
 	}
 
-	public void OnPlayerJoined(string playerName, string playerId)
+	public void OnPlayerJoined(string playerName)
 	{
-		GD.Print($"Game: Player joined - {playerName} (ID: {playerId})");
+		GD.Print($"Game: Player joined - {playerName})");
 
 		// The server will send the complete player list with roles via PlayerListReceived
 		// so we don't need to manually add players here - just update the UI
@@ -617,7 +608,7 @@ public partial class Game : Control
 			return;
 
 		// Don't add duplicate if already in list
-		if (playersLabels.ContainsKey(playerName))
+		if (players.Any(pl => pl.MatchesName(playerName)))
 		{
 			GD.Print($"Player {playerName} already in list");
 			return;
@@ -630,15 +621,12 @@ public partial class Game : Control
 			emptyLabel.QueueFree();
 		}
 
-		// Create a label for the player
+		// Create a label and Player model for the player
 		Label playerLabel = new Label();
-		playerLabel.Text = $"🎮 {playerName}";
-		playerLabel.AddThemeColorOverride("font_color", new Color(0.2f, 1, 0.4f, 1));
-		playerLabel.AddThemeFontSizeOverride("font_size", 14);
-		playerLabel.HorizontalAlignment = HorizontalAlignment.Left;
-		
+		Player p = new Player(playerName);
+		p.ApplyLabelStyle(playerLabel);
 		playersList.AddChild(playerLabel);
-		playersLabels[playerName] = playerLabel;
+		players.Add(p);
 
 		GD.Print($"Added player {playerName} to list");
 	}
@@ -659,21 +647,16 @@ public partial class Game : Control
 				playersList.RemoveChild(child);
 				child.QueueFree();
 			}
-			playersLabels.Clear();
+			players.Clear();
 
-			// Add all players from the server's player list with their roles
-			foreach (var entry in playerList)
-			{
-				var playerData = (Godot.Collections.Dictionary)entry;
-				string playerNameStr = playerData["playerName"].AsString();
-				string roleStr = playerData.ContainsKey("role") ? playerData["role"].AsString() : "player";
-
-				// Create display name with role indicator
-				string displayName = roleStr == "master" ? $"👑 {playerNameStr}" : $"🎮 {playerNameStr}";
-				AddPlayerToListWithRole(playerNameStr, displayName, roleStr);
-			}
-
-			// Update player count
+		// Add all players from the server's player list with their roles
+		foreach (var entry in playerList)
+		{
+			var playerData = (Godot.Collections.Dictionary)entry;
+			string playerNameStr = playerData["playerName"].AsString();
+			string roleStr = playerData.ContainsKey("role") ? playerData["role"].AsString() : "player";
+			AddPlayerToListWithRole(playerNameStr, roleStr);
+		}			// Update player count
 			if (playersCountLabel != null)
 				playersCountLabel.Text = $"Players: {playerList.Count}";
 			
@@ -687,13 +670,13 @@ public partial class Game : Control
 		}
 	}
 
-	private void AddPlayerToListWithRole(string playerName, string displayName, string role)
+	private void AddPlayerToListWithRole(string playerName, string role)
 	{
 		if (playersList == null)
 			return;
 
 		// Don't add duplicate if already in list
-		if (playersLabels.ContainsKey(playerName))
+		if (players.Any(pl => pl.MatchesName(playerName)))
 		{
 			GD.Print($"Player {playerName} already in list");
 			return;
@@ -706,40 +689,22 @@ public partial class Game : Control
 			emptyLabel.QueueFree();
 		}
 
-		// Create a label for the player
+		// Create a label and Player model for the player
 		Label playerLabel = new Label();
-		playerLabel.Text = displayName;
-		
-		// Master color is golden/yellow, player color is green
-		Color textColor = role == "master" ? new Color(1, 0.84f, 0, 1) : new Color(0.2f, 1, 0.4f, 1);
-		playerLabel.AddThemeColorOverride("font_color", textColor);
-		playerLabel.AddThemeFontSizeOverride("font_size", 14);
-		playerLabel.HorizontalAlignment = HorizontalAlignment.Left;
-		
+		Player p = new Player(playerName, role);
+		p.ApplyLabelStyle(playerLabel);
 		playersList.AddChild(playerLabel);
-		playersLabels[playerName] = playerLabel;
+		players.Add(p);
 
 		GD.Print($"Added player {playerName} to list (role: {role})");
 	}
 
 	private void ClearPlayerFeedback()
 	{
-		// Remove ✅/❌ feedback from all player labels
-		foreach (var kvp in playersLabels)
+		// Remove ✅/❌ feedback from all player labels using Player model
+		foreach (var p in players)
 		{
-			string playerName = kvp.Key;
-			Label playerLabel = kvp.Value;
-			
-			// Get the player's role to determine the emoji
-			bool isMasterRole = playerLabel.Text.Contains("👑");
-			string emoji = isMasterRole ? "👑" : "🎮";
-			
-			// Reset the label to just name + emoji without feedback
-			playerLabel.Text = $"{emoji} {playerName}";
-			
-			// Reset color to default (golden for master, green for player)
-			Color textColor = isMasterRole ? new Color(1, 0.84f, 0, 1) : new Color(0.2f, 1, 0.4f, 1);
-			playerLabel.AddThemeColorOverride("font_color", textColor);
+			p.SetFeedback(null);
 		}
 		
 		GD.Print("Cleared player feedback icons for new round");
