@@ -120,35 +120,49 @@ using (var scope = app.Services.CreateScope())
         // Créer des catégories
         var actionCategory = new Category { Name = "Action", Description = "Jeux d'action" };
         var rpgCategory = new Category { Name = "RPG", Description = "Jeux de rôle" };
+        var strategyCategory = new Category { Name = "Strategy", Description = "Jeux de stratégie" };
+        var adventureCategory = new Category { Name = "Adventure", Description = "Jeux d'aventure" };
+        var sportsCategory = new Category { Name = "Sports", Description = "Jeux de sport" };
+        var puzzleCategory = new Category { Name = "Puzzle", Description = "Jeux de réflexion" };
+        var simulationCategory = new Category { Name = "Simulation", Description = "Jeux de simulation" };
+        var horrorCategory = new Category { Name = "Horror", Description = "Jeux d'horreur" };
 
-        context.Categories.AddRange(actionCategory, rpgCategory);
+        context.Categories.AddRange(actionCategory, rpgCategory, strategyCategory, adventureCategory, 
+            sportsCategory, puzzleCategory, simulationCategory, horrorCategory);
         context.SaveChanges();
 
-        // Créer des jeux
-        var game1 = new Game
+        // Créer des jeux aléatoires
+        var random = new Random();
+        var categories = new[] { actionCategory, rpgCategory, strategyCategory, adventureCategory, 
+            sportsCategory, puzzleCategory, simulationCategory, horrorCategory };
+        var gameNames = new[] { "Adventure", "Quest", "Battle", "Legend", "Hero", "Dragon", "Warrior", "Magic", "Kingdom", "Shadow" };
+        var gameTypes = new[] { "Arena", "Chronicles", "Saga", "World", "Realm", "Empire", "Legends", "Masters", "Origins", "Reborn" };
+        var games = new List<Game>();
+        
+        int numberOfGames = 50; // Nombre de jeux à créer
+        
+        for (int i = 1; i <= numberOfGames; i++)
         {
-            Name = "Test Game 1",
-            Description = "Un jeu de test",
-            Payload = new byte[] { 0x01, 0x02, 0x03 },
-            Price = 19.99m,
-        };
-
-        var game2 = new Game
-        {
-            Name = "Test Game 2",
-            Description = "Un autre jeu de test",
-            Payload = new byte[] { 0x04, 0x05, 0x06 },
-            Price = 29.99m,
-        };
-
-        context.Games.AddRange(game1, game2);
+            var gameName = $"{gameNames[random.Next(gameNames.Length)]} {gameTypes[random.Next(gameTypes.Length)]} {i}";
+            var game = new Game
+            {
+                Name = gameName,
+                Description = $"Un jeu passionnant de type {categories[random.Next(categories.Length)].Name}",
+                Payload = Enumerable.Range(0, random.Next(3, 10)).Select(_ => (byte)random.Next(256)).ToArray(),
+                Price = Math.Round((decimal)(random.NextDouble() * 50 + 10), 2),
+            };
+            
+            games.Add(game);
+            context.Games.Add(game);
+        }
         context.SaveChanges();
 
-        // Associer des catégories aux jeux
-        context.GameCategories.AddRange(
-            new GameCategory { Game = game1, Category = actionCategory },
-            new GameCategory { Game = game2, Category = rpgCategory }
-        );
+        // Associer des catégories aléatoires aux jeux
+        foreach (var game in games)
+        {
+            var category = categories[random.Next(categories.Length)];
+            context.GameCategories.Add(new GameCategory { Game = game, Category = category });
+        }
         context.SaveChanges();
 
         Console.WriteLine("✅ Données de test créées avec succès !");

@@ -149,5 +149,26 @@ namespace Gauniv.WebServer.Api
 
             return Ok(roles);
         }
+
+        [HttpDelete("{userId}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> DeleteUser(string userId)
+        {
+            var user = await userManager.FindByIdAsync(userId);
+            if (user == null)
+            {
+                return NotFound(new { message = "User not found" });
+            }
+
+            var result = await userManager.DeleteAsync(user);
+            if (result.Succeeded)
+            {
+                return Ok(new { message = "User deleted successfully" });
+            }
+
+            return BadRequest(
+                new { message = "Error deleting user", errors = result.Errors }
+            );
+        }
     }
 }

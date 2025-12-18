@@ -161,7 +161,27 @@ namespace Gauniv.WebServer.Controllers
                 .ToListAsync();
 
             var categories = await applicationDbContext.Categories.ToListAsync();
+            var users = await applicationDbContext.Users.ToListAsync();
+            
+            // Calculate real statistics from purchases
+            var userGames = await applicationDbContext
+                .UserGames.Include(ug => ug.Game)
+                .ToListAsync();
+            
+            decimal totalRevenue = userGames.Sum(ug => ug.Game.Price);
+            int totalGames = games.Count;
+            int totalUsers = users.Count;
+            int activeUsers = users.Count; // You can refine this to count only active users (e.g., logged in last 30 days)
+            
             ViewBag.Categories = categories;
+            ViewBag.Stats = new
+            {
+                TotalRevenue = totalRevenue,
+                TotalGames = totalGames,
+                TotalUsers = totalUsers,
+                ActiveUsers = activeUsers
+            };
+            
             return View(games);
         }
 
