@@ -33,6 +33,9 @@ public partial class NetworkManager : Control
     public delegate void GameCreatedEventHandler(string gameCode);
 
     [Signal]
+    public delegate void PlayerJoinedGameEventHandler(bool success);
+
+    [Signal]
     public delegate void GameStartedEventHandler(int sessionId);
 
     [Signal]
@@ -52,6 +55,9 @@ public partial class NetworkManager : Control
 
     [Signal]
     public delegate void PlayerSubmittedEventHandler(string playerName, bool isCorrect, int pointsEarned, int totalScore);
+
+    [Signal]
+    public delegate void OperationFailedEventHandler(string error, string invocationId);
 
     public override void _Ready()
     {
@@ -231,6 +237,10 @@ public partial class NetworkManager : Control
                 if (arguments.GetArrayLength() > 0)
                 {
                     string leaderboard = arguments[0].GetRawText();
+                    foreach (var arg in arguments.EnumerateArray())
+                    {
+                        GD.Print($"Arg: {arg.GetRawText()}");
+                    }
                     EmitSignal(SignalName.GameEnded, leaderboard);
                     GD.Print($"Game ended - Leaderboard: {leaderboard}");
                 }
@@ -284,6 +294,15 @@ public partial class NetworkManager : Control
 
         string invocationId = message["invocationId"].GetString();
 
+        // Traiter les erreurs en premier
+        if (message.ContainsKey("error"))
+        {
+            string error = message["error"].GetString();
+            EmitSignal(SignalName.OperationFailed, error, invocationId);
+            GD.PrintErr($"❌ Server error: {error}");
+            return; // Ne pas continuer si erreur
+        }
+
         if (message.ContainsKey("result"))
         {
             var result = message["result"];
@@ -299,13 +318,18 @@ public partial class NetworkManager : Control
             else if (result.ValueKind == JsonValueKind.True || result.ValueKind == JsonValueKind.False)
             {
                 bool success = result.GetBoolean();
+                if (success)
+                {
+                    // C'est probablement une réponse à JoinGame
+                    EmitSignal(SignalName.PlayerJoinedGame, true);
+                    GD.Print("✅ Successfully joined game");
+                }
+                else
+                {
+                    EmitSignal(SignalName.OperationFailed, "Operation returned false", invocationId);
+                }
                 GD.Print($"Operation result: {success}");
             }
-        }
-        else if (message.ContainsKey("error"))
-        {
-            string error = message["error"].GetString();
-            GD.PrintErr($"Server error: {error}");
         }
     }
 

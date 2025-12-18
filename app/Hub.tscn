@@ -4,13 +4,14 @@
 
 [node name="Hub" type="Control"]
 layout_mode = 3
-anchor_right = 0.82100004
-anchor_bottom = 0.78300005
-offset_right = -181.15002
-offset_bottom = -144.95004
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 script = ExtResource("1_2ju24")
 
-[node name="VBoxContainer" type="VBoxContainer" parent="."]
+[node name="BackgroundPanel" type="PanelContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -18,62 +19,136 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="Titre" type="Label" parent="VBoxContainer"]
-layout_mode = 2
-text = "Memory Game - Hub"
-horizontal_alignment = 1
+[node name="MainVBox" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = -1
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 30
 
-[node name="CreateGamePanel" type="VBoxContainer" parent="VBoxContainer"]
+[node name="Header" type="VBoxContainer" parent="MainVBox"]
 layout_mode = 2
+theme_override_constants/separation = 10
 alignment = 1
 
-[node name="Creer une partie" type="Label" parent="VBoxContainer/CreateGamePanel"]
+[node name="Title" type="Label" parent="MainVBox/Header"]
 layout_mode = 2
-text = "Creer une partie"
+theme_override_colors/font_color = Color(0.2, 0.7, 1, 1)
+theme_override_font_sizes/font_size = 48
+text = "🎮 Memory Game Hub"
+horizontal_alignment = 1
 
-[node name="CreateGameSubPanel" type="HBoxContainer" parent="VBoxContainer/CreateGamePanel"]
+[node name="Subtitle" type="Label" parent="MainVBox/Header"]
 layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+theme_override_font_sizes/font_size = 18
+text = "Create or join a game to start playing"
+horizontal_alignment = 1
 
-[node name="PlayerNameInput_Create" type="LineEdit" parent="VBoxContainer/CreateGamePanel/CreateGameSubPanel"]
-custom_minimum_size = Vector2(200, 0)
+[node name="Content" type="HBoxContainer" parent="MainVBox"]
 layout_mode = 2
-placeholder_text = "Votre nom"
+theme_override_constants/separation = 50
+alignment = 1
 
-[node name="CreateGameButton" type="Button" parent="VBoxContainer/CreateGamePanel/CreateGameSubPanel"]
-custom_minimum_size = Vector2(150, 0)
-layout_mode = 2
-text = "Créer
-"
-
-[node name="VSeparator" type="VSeparator" parent="VBoxContainer"]
-layout_mode = 2
-
-[node name="JoinGamePanel" type="VBoxContainer" parent="VBoxContainer"]
-layout_mode = 2
-
-[node name="Rejoindre une partie" type="Label" parent="VBoxContainer/JoinGamePanel"]
-layout_mode = 2
-text = "Rejoindre une partie"
-
-[node name="JoinGameSubPanel" type="HBoxContainer" parent="VBoxContainer/JoinGamePanel"]
+[node name="CreateGameCard" type="PanelContainer" parent="MainVBox/Content"]
+custom_minimum_size = Vector2(350, 300)
 layout_mode = 2
 
-[node name="GameIdInput" type="LineEdit" parent="VBoxContainer/JoinGamePanel/JoinGameSubPanel"]
-custom_minimum_size = Vector2(200, 0)
+[node name="CreateGameMargin" type="MarginContainer" parent="MainVBox/Content/CreateGameCard"]
 layout_mode = 2
-placeholder_text = "ID de partie"
 
-[node name="PlayerNameInput_Join" type="LineEdit" parent="VBoxContainer/JoinGamePanel/JoinGameSubPanel"]
-custom_minimum_size = Vector2(200, 0)
+[node name="CreateGameVBox" type="VBoxContainer" parent="MainVBox/Content/CreateGameCard/CreateGameMargin"]
 layout_mode = 2
-placeholder_text = "Votre nom"
+theme_override_constants/separation = 20
 
-[node name="JoinGameButton" type="Button" parent="VBoxContainer/JoinGamePanel/JoinGameSubPanel"]
-custom_minimum_size = Vector2(120, 0)
+[node name="CreateTitle" type="Label" parent="MainVBox/Content/CreateGameCard/CreateGameMargin/CreateGameVBox"]
 layout_mode = 2
-text = "Rejoindre
-"
+theme_override_colors/font_color = Color(0.2, 1, 0.4, 1)
+theme_override_font_sizes/font_size = 24
+text = "Create New Game"
+horizontal_alignment = 1
 
-[node name="StatusLabel" type="Label" parent="VBoxContainer"]
+[node name="CreateDescription" type="Label" parent="MainVBox/Content/CreateGameCard/CreateGameMargin/CreateGameVBox"]
 layout_mode = 2
-text = "En attente..."
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+theme_override_font_sizes/font_size = 14
+text = "Start a new game and invite others to join"
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="Spacer1" type="Control" parent="MainVBox/Content/CreateGameCard/CreateGameMargin/CreateGameVBox"]
+layout_mode = 2
+
+[node name="PlayerNameInput_Create" type="LineEdit" parent="MainVBox/Content/CreateGameCard/CreateGameMargin/CreateGameVBox"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+placeholder_text = "Enter your name"
+
+[node name="CreateGameButton" type="Button" parent="MainVBox/Content/CreateGameCard/CreateGameMargin/CreateGameVBox"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Create Game"
+
+[node name="JoinGameCard" type="PanelContainer" parent="MainVBox/Content"]
+custom_minimum_size = Vector2(350, 300)
+layout_mode = 2
+
+[node name="JoinGameMargin" type="MarginContainer" parent="MainVBox/Content/JoinGameCard"]
+layout_mode = 2
+
+[node name="JoinGameVBox" type="VBoxContainer" parent="MainVBox/Content/JoinGameCard/JoinGameMargin"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="JoinTitle" type="Label" parent="MainVBox/Content/JoinGameCard/JoinGameMargin/JoinGameVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.7, 0.2, 1)
+theme_override_font_sizes/font_size = 24
+text = "Join Existing Game"
+horizontal_alignment = 1
+
+[node name="JoinDescription" type="Label" parent="MainVBox/Content/JoinGameCard/JoinGameMargin/JoinGameVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+theme_override_font_sizes/font_size = 14
+text = "Join a game using its ID and play with others"
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="Spacer2" type="Control" parent="MainVBox/Content/JoinGameCard/JoinGameMargin/JoinGameVBox"]
+layout_mode = 2
+
+[node name="GameIdInput" type="LineEdit" parent="MainVBox/Content/JoinGameCard/JoinGameMargin/JoinGameVBox"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+placeholder_text = "Enter game ID"
+
+[node name="PlayerNameInput_Join" type="LineEdit" parent="MainVBox/Content/JoinGameCard/JoinGameMargin/JoinGameVBox"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+placeholder_text = "Enter your name"
+
+[node name="JoinGameButton" type="Button" parent="MainVBox/Content/JoinGameCard/JoinGameMargin/JoinGameVBox"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Join Game"
+
+[node name="StatusPanel" type="PanelContainer" parent="MainVBox"]
+layout_mode = 2
+
+[node name="StatusMargin" type="MarginContainer" parent="MainVBox/StatusPanel"]
+layout_mode = 2
+
+[node name="StatusLabel" type="Label" parent="MainVBox/StatusPanel/StatusMargin"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Welcome to Memory Game"
+horizontal_alignment = 1
+vertical_alignment = 1

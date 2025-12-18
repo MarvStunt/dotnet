@@ -30,20 +30,20 @@ public partial class ResultPanel : Panel
 	/// <summary>
 	/// Show win result
 	/// </summary>
-	public void ShowWon(string reason = "Bravo! Vous avez gagné!")
+	public void ShowWon(string reason = "Bravo! Vous avez gagné!", int score = 0)
 	{
 		titleLabel.Text = "Vous avez gagné!";
-		messageLabel.Text = reason;
+		messageLabel.Text = $"{reason}\n\n📊 Score: {score} pts";
 		Visible = true;
 	}
 
 	/// <summary>
 	/// Show loss result
 	/// </summary>
-	public void ShowLost(string reason = "Dommage, vous avez perdu!")
+	public void ShowLost(string reason = "Dommage, vous avez perdu!", int score = 0)
 	{
 		titleLabel.Text = "Vous avez perdu!";
-		messageLabel.Text = reason;
+		messageLabel.Text = $"{reason}\n\n📊 Score: {score} pts";
 		Visible = true;
 	}
 

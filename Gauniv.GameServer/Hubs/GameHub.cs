@@ -185,6 +185,7 @@ namespace Gauniv.GameServer.Hubs
         /// </summary>
         public async Task<bool> JoinGame(string gameCode, string playerName)
         {
+            Console.WriteLine($"TRYNG TO JOIN GAME {gameCode} AS {playerName}");
             var session = await _dbContext.GameSessions
                 .Include(gs => gs.Players)
                 .FirstOrDefaultAsync(gs => gs.Code == gameCode);
@@ -196,6 +197,13 @@ namespace Gauniv.GameServer.Hubs
                 throw new HubException("Game already started");
 
             // Vérifier si le joueur n'est pas déjà dans la partie
+            // Log every player in the lobby
+            Console.WriteLine("Current players in the lobby:");
+            foreach (var p in session.Players)
+            {
+                Console.WriteLine($"- {p.PlayerName}");
+            }
+
             if (session.Players.Any(p => p.PlayerName == playerName))
                 throw new HubException("Player name already taken");
 
@@ -215,6 +223,12 @@ namespace Gauniv.GameServer.Hubs
                 .SendAsync("PlayerJoined", playerName, player.Id);
 
             Console.WriteLine($"👤 {playerName} joined game {gameCode}");
+            Console.WriteLine("Current players in the lobby:");
+            foreach (var p in session.Players)
+            {
+                Console.WriteLine($"- {p.PlayerName}");
+            }
+
             return true;
         }
 

@@ -15,6 +15,8 @@ public partial class Hub : Control
 	private Button createGameButton;
 	private Button joinGameButton;
 	private Label statusLabel;
+	private bool isWaitingForResponse = false;
+	private string currentOperation = "";
 
 	public override void _Ready()
 	{
@@ -36,18 +38,67 @@ public partial class Hub : Control
 		}
 
 		// Find UI elements
-		playerNameInputCreate = GetNode<LineEdit>("VBoxContainer/CreateGamePanel/CreateGameSubPanel/PlayerNameInput_Create");
-		createGameButton = GetNode<Button>("VBoxContainer/CreateGamePanel/CreateGameSubPanel/CreateGameButton");
-		gameIdInput = GetNode<LineEdit>("VBoxContainer/JoinGamePanel/JoinGameSubPanel/GameIdInput");
-		playerNameInputJoin = GetNode<LineEdit>("VBoxContainer/JoinGamePanel/JoinGameSubPanel/PlayerNameInput_Join");
-		joinGameButton = GetNode<Button>("VBoxContainer/JoinGamePanel/JoinGameSubPanel/JoinGameButton");
-		statusLabel = GetNode<Label>("VBoxContainer/StatusLabel");
+		playerNameInputCreate = GetNode<LineEdit>("MainVBox/Content/CreateGameCard/CreateGameMargin/CreateGameVBox/PlayerNameInput_Create");
+		createGameButton = GetNode<Button>("MainVBox/Content/CreateGameCard/CreateGameMargin/CreateGameVBox/CreateGameButton");
+		gameIdInput = GetNode<LineEdit>("MainVBox/Content/JoinGameCard/JoinGameMargin/JoinGameVBox/GameIdInput");
+		playerNameInputJoin = GetNode<LineEdit>("MainVBox/Content/JoinGameCard/JoinGameMargin/JoinGameVBox/PlayerNameInput_Join");
+		joinGameButton = GetNode<Button>("MainVBox/Content/JoinGameCard/JoinGameMargin/JoinGameVBox/JoinGameButton");
+		statusLabel = GetNode<Label>("MainVBox/StatusPanel/StatusMargin/StatusLabel");
 
 		// Connect buttons
 		createGameButton.Pressed += OnCreateGamePressed;
 		joinGameButton.Pressed += OnJoinGamePressed;
 
+		// Connect network manager signals
+		networkManager.OperationFailed += OnOperationFailed;
+		networkManager.GameCreated += OnGameCreated;
+		networkManager.PlayerJoinedGame += OnPlayerJoinedGame;
+
 		statusLabel.Text = "Welcome to Memory Game";
+	}
+
+	private void OnOperationFailed(string error, string invocationId)
+	{
+		GD.PrintErr($"Operation failed: {error}");
+		statusLabel.Text = $"❌ Error: {error}";
+
+		// Réactiver les boutons
+		createGameButton.Disabled = false;
+		joinGameButton.Disabled = false;
+		isWaitingForResponse = false;
+	}
+
+	private void OnGameCreated(string gameCode)
+	{
+		if (!isWaitingForResponse || currentOperation != "create")
+			return;
+
+		statusLabel.Text = $"✅ Game created! ID: {gameCode}";
+		isWaitingForResponse = false;
+
+		// Changer de scène seulement si succès
+		GetTree().CallDeferred("change_scene_to_file", "res://Game.tscn");
+	}
+
+	private void OnPlayerJoinedGame(bool success)
+	{
+		if (!isWaitingForResponse || currentOperation != "join")
+			return;
+
+		if (success)
+		{
+			statusLabel.Text = "✅ Joined game successfully!";
+			isWaitingForResponse = false;
+
+			// Changer de scène seulement si succès
+			GetTree().CallDeferred("change_scene_to_file", "res://Game.tscn");
+		}
+		else
+		{
+			statusLabel.Text = "❌ Failed to join game";
+			joinGameButton.Disabled = false;
+			isWaitingForResponse = false;
+		}
 	}
 
 	private void OnCreateGamePressed()
@@ -83,26 +134,21 @@ public partial class Hub : Control
 			}
 
 			statusLabel.Text = "⏳ Creating game...";
-			networkManager.CreateGame(playerName);
+			isWaitingForResponse = true;
+			currentOperation = "create";
+
 			networkManager.PlayerName = playerName;
 			networkManager.PlayerRole = "master";
+			networkManager.CreateGame(playerName);
 
-			// Wait a bit for response
-			await Task.Delay(2000);
-
-			// Check if game was started
-			if (!string.IsNullOrEmpty(networkManager.GameId))
-			{
-				statusLabel.Text = $"✅ Game created! ID: {networkManager.GameId}";
-				await Task.Delay(1000);
-				GetTree().ChangeSceneToFile("res://Game.tscn");
-			}
+			// Les signaux OnGameCreated ou OnOperationFailed géreront la suite
 		}
 		catch (Exception ex)
 		{
 			GD.PrintErr($"Error creating game: {ex.Message}");
 			statusLabel.Text = "❌ Error creating game";
 			createGameButton.Disabled = false;
+			isWaitingForResponse = false;
 		}
 	}
 
@@ -145,30 +191,21 @@ public partial class Hub : Control
 			}
 
 			statusLabel.Text = "⏳ Joining game...";
-			networkManager.JoinGame(gameId, playerName);
+			isWaitingForResponse = true;
+			currentOperation = "join";
+
 			networkManager.PlayerName = playerName;
 			networkManager.PlayerRole = "player";
+			networkManager.JoinGame(gameId, playerName);
 
-			// Wait for response
-			await Task.Delay(2000);
-
-			if (!string.IsNullOrEmpty(networkManager.GameId))
-			{
-				statusLabel.Text = $"✅ Joined game! Role: {networkManager.PlayerRole}";
-				await Task.Delay(1000);
-				GetTree().ChangeSceneToFile("res://Game.tscn");
-			}
-			else
-			{
-				statusLabel.Text = "❌ Failed to join game";
-				joinGameButton.Disabled = false;
-			}
+			// Les signaux OnGameCreated ou OnOperationFailed géreront la suite
 		}
 		catch (Exception ex)
 		{
 			GD.PrintErr($"Error joining game: {ex.Message}");
 			statusLabel.Text = "❌ Error joining game";
 			joinGameButton.Disabled = false;
+			isWaitingForResponse = false;
 		}
 	}
 }
