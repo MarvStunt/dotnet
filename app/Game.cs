@@ -31,6 +31,8 @@ public partial class Game : Control
     private Button retryButton;
     private Button hubButton;
 
+    private int playerResponseCount = 0;
+
     public override void _Ready()
     {
         masterSection = GetNode<Control>("Main/Game Area/Master Section");
@@ -68,6 +70,13 @@ public partial class Game : Control
             networkManager = GetTree().Root.GetNode<NetworkManager>("NetworkManager");
             isMaster = networkManager.PlayerRole == "master";
             ConnectNetworkSignals();
+        }
+
+        // Get result panel buttons from ResultPanel
+        if (resultPanel != null)
+        {
+            retryButton = resultPanel.GetNode<Button>("VBoxContainer/Buttons/RetryButton");
+            hubButton = resultPanel.GetNode<Button>("VBoxContainer/Buttons/BackToHubButton");
         }
 
         if (disconnectButton != null)
@@ -128,14 +137,6 @@ public partial class Game : Control
         AddColorToSequence();
     }
 
-    // Master mode: wait for master to click buttons to build their sequence
-    private void PrepareForMasterInput()
-    {
-        isPlayerTurn = true;
-        if (labelInfo != null)
-            labelInfo.Text = "Click buttons to build your sequence 🎯";
-    }
-
     private void ConnectButtons()
     {
         foreach (ColorButton btn in buttons)
@@ -165,16 +166,22 @@ public partial class Game : Control
     private void OnRoundChanged(int roundNumber)
     {
         GD.Print($"Game: Round changed to {roundNumber}");
-        
+
         if (isMaster)
         {
             // Master prepares to build sequence for this round
             sequence.Clear();
             playerInput.Clear();
+            playerResponseCount = 0;
             isPlayerTurn = true;
             if (labelInfo != null)
                 labelInfo.Text = $"Round {roundNumber}\nClick buttons to build sequence 🎯";
+            if (roundNumber >= 3)
+            {
+                endGameButton.Disabled = false;
+            }
             GD.Print($"Master: Ready to build sequence for round {roundNumber}");
+            EnableGameButtons();
         }
         else
         {
@@ -203,10 +210,19 @@ public partial class Game : Control
         {
             labelInfo.Text = $"❌ {playerName}: Wrong! (Total: {totalScore})";
         }
-        
+
         // Disable player input until next turn
         isPlayerTurn = false;
         DisablePlayerButtons();
+
+        if (isMaster)
+        {
+            playerResponseCount++;
+            if (playerResponseCount == connectedPlayers)
+            {
+                nextRoundButton.Disabled = false;
+            }
+        }
     }
 
     // Handler for game ended signal from server
@@ -215,15 +231,16 @@ public partial class Game : Control
         GD.Print($"Game: Game ended - Leaderboard: {leaderboardJson}");
         labelInfo.Text = $"🏁 GAME FINISHED!\nLeaderboard: {leaderboardJson}";
         isPlayerTurn = false;
+        // resultPanel.ShowWon();
     }
 
-    // Game Master builds sequence by clicking buttons
     private void AddColorToSequence()
     {
-        // Wait for master input - buttons will be registered via OnButtonPressed
         if (isMaster)
         {
-            PrepareForMasterInput();
+            isPlayerTurn = true;
+            if (labelInfo != null)
+                labelInfo.Text = "Click buttons to build your sequence 🎯";
         }
     }
 
@@ -297,23 +314,21 @@ public partial class Game : Control
         await ToSignal(GetTree().CreateTimer(0.2f), "timeout");
     }
 
-    // Button clicks - handles both master sequence building and player input
     private async void OnButtonPressed(int index)
     {
         if (!isPlayerTurn)
             return;
 
-        // Master building sequence
         if (isMaster)
         {
             sequence.Add(index);
             GD.Print($"Master added to sequence: {index}, sequence length: {sequence.Count}");
+            sendSequenceButton.Disabled = false;
             if (labelInfo != null)
                 labelInfo.Text = $"Sequence built: {string.Join(",", sequence)} 🎯\nClick 'Send' when ready!";
             return;
         }
 
-        // Player responding to sequence
         playerInput.Add(index);
         int i = playerInput.Count - 1;
 
@@ -321,6 +336,8 @@ public partial class Game : Control
         {
             labelInfo.Text = "❌ Wrong!";
             isPlayerTurn = false;
+            DisablePlayerButtons();
+            SendAnswerToServer(playerInput.ToArray());
             return;
         }
 
@@ -417,20 +434,22 @@ public partial class Game : Control
         GD.Print($"Master starting round");
         networkManager.StartRound(sequence);
         labelInfo.Text = "Sequence sent!\nWaiting for players...";
+        DisableAllGameButtons();
     }
 
-	public void OnNextRound()
-	{
-		if (!isMaster || networkManager == null)
-		{
-			GD.PrintErr("OnNextRound: Not a master or not in network game");
-			return;
-		}
+    public void OnNextRound()
+    {
+        if (!isMaster || networkManager == null)
+        {
+            GD.PrintErr("OnNextRound: Not a master or not in network game");
+            return;
+        }
 
-		GD.Print("Master starting next round");
-		networkManager.NextRound();
-		labelInfo.Text = "Starting next round...\nWaiting for players...";
-	}
+        GD.Print("Master starting next round");
+        networkManager.NextRound();
+        labelInfo.Text = "Starting next round...\nWaiting for players...";
+        nextRoundButton.Disabled = true;
+    }
 
     public void OnSubmitAnswer()
     {
@@ -480,10 +499,6 @@ public partial class Game : Control
             btn.Disabled = false;
         }
 
-        // Enable send/submit buttons
-        if (sendSequenceButton != null && isMaster)
-            sendSequenceButton.Disabled = false;
-
         GD.Print("Game buttons enabled");
     }
 
@@ -527,7 +542,8 @@ public partial class Game : Control
             gameStarted = true;
             EnableGameButtons();
             StartMasterGame();
-			networkManager.StartGame();
+            networkManager.StartGame();
+            startGameButton.Disabled = true;
         }
         else if (connectedPlayers == 0)
         {
@@ -546,6 +562,7 @@ public partial class Game : Control
             networkManager.StopGame();
             gameStarted = false;
         }
+        DisableAllGameButtons();
     }
 
     public async void OnCopyGameIdPressed()
