@@ -66,6 +66,24 @@ namespace Gauniv.WebServer.Api
             var userGamesCount = await appDbContext.UserGames.CountAsync();
             var gameCategoriesCount = await appDbContext.GameCategories.CountAsync();
 
+            // Récupérer les utilisateurs avec leurs rôles
+            var allUsers = await appDbContext.Users.ToListAsync();
+            var usersWithRoles = new List<object>();
+
+            foreach (var user in allUsers)
+            {
+                var roles = await userManager.GetRolesAsync(user);
+                usersWithRoles.Add(
+                    new
+                    {
+                        user.Email,
+                        user.FirstName,
+                        user.LastName,
+                        Roles = roles,
+                    }
+                );
+            }
+
             return Ok(
                 new
                 {
@@ -74,6 +92,7 @@ namespace Gauniv.WebServer.Api
                     Users = usersCount,
                     PurchasedGames = userGamesCount,
                     GameCategoryAssociations = gameCategoriesCount,
+                    AllUsers = usersWithRoles,
                     AllGames = await appDbContext
                         .Games.Include(g => g.GameCategories)
                             .ThenInclude(gc => gc.Category)
@@ -85,6 +104,362 @@ namespace Gauniv.WebServer.Api
                             Categories = g.GameCategories.Select(gc => gc.Category.Name),
                         })
                         .ToListAsync(),
+                }
+            );
+        }
+
+        [HttpGet]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetAllGames()
+        {
+            var games = await appDbContext
+                .Games.Include(g => g.GameCategories)
+                    .ThenInclude(gc => gc.Category)
+                .Select(g => new
+                {
+                    g.Id,
+                    g.Name,
+                    g.Description,
+                    g.Price,
+                    PayloadSize = g.Payload.Length,
+                    Categories = g.GameCategories.Select(gc => new
+                    {
+                        gc.Category.Id,
+                        gc.Category.Name,
+                    }),
+                })
+                .ToListAsync();
+
+            return Ok(games);
+        }
+
+        [HttpGet("{id}")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetGame(int id)
+        {
+            var game = await appDbContext
+                .Games.Include(g => g.GameCategories)
+                    .ThenInclude(gc => gc.Category)
+                .FirstOrDefaultAsync(g => g.Id == id);
+
+            if (game == null)
+            {
+                return NotFound(new { message = "Jeu non trouvé" });
+            }
+
+            return Ok(
+                new
+                {
+                    game.Id,
+                    game.Name,
+                    game.Description,
+                    game.Price,
+                    PayloadSize = game.Payload.Length,
+                    Categories = game.GameCategories.Select(gc => new
+                    {
+                        gc.Category.Id,
+                        gc.Category.Name,
+                    }),
+                }
+            );
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Admin")]
+        [IgnoreAntiforgeryToken]
+        [RequestSizeLimit(524288000)] // 500 MB
+        [RequestFormLimits(MultipartBodyLengthLimit = 524288000)]
+        public async Task<IActionResult> CreateGame(
+            [FromForm] string name,
+            [FromForm] string description,
+            [FromForm] decimal price,
+            [FromForm] IFormFile payload,
+            [FromForm] string? categoryIds
+        )
+        {
+            if (payload == null || payload.Length == 0)
+            {
+                return BadRequest(new { message = "Le fichier payload est requis" });
+            }
+
+            byte[] payloadBytes;
+            using (var memoryStream = new MemoryStream())
+            {
+                await payload.CopyToAsync(memoryStream);
+                payloadBytes = memoryStream.ToArray();
+            }
+
+            var game = new Game
+            {
+                Name = name,
+                Description = description,
+                Price = price,
+                Payload = payloadBytes,
+            };
+
+            appDbContext.Games.Add(game);
+            await appDbContext.SaveChangesAsync();
+            if (!string.IsNullOrEmpty(categoryIds))
+            {
+                var categoryIdList = categoryIds
+                    .Split(',')
+                    .Select(id => int.TryParse(id.Trim(), out var result) ? result : 0)
+                    .Where(id => id > 0)
+                    .ToList();
+
+                foreach (var categoryId in categoryIdList)
+                {
+                    var category = await appDbContext.Categories.FindAsync(categoryId);
+                    if (category != null)
+                    {
+                        appDbContext.GameCategories.Add(
+                            new GameCategory { GameId = game.Id, CategoryId = categoryId }
+                        );
+                    }
+                }
+                await appDbContext.SaveChangesAsync();
+            }
+
+            return CreatedAtAction(
+                nameof(GetGame),
+                new { id = game.Id },
+                new
+                {
+                    game.Id,
+                    game.Name,
+                    game.Description,
+                    game.Price,
+                    message = "Jeu créé avec succès",
+                }
+            );
+        }
+
+        [HttpPut("{id}")]
+        [Authorize(Roles = "Admin")]
+        [IgnoreAntiforgeryToken]
+        public async Task<IActionResult> UpdateGame(
+            int id,
+            [FromForm] string? name,
+            [FromForm] string? description,
+            [FromForm] decimal? price,
+            [FromForm] IFormFile? payload,
+            [FromForm] string? categoryIds
+        )
+        {
+            var game = await appDbContext
+                .Games.Include(g => g.GameCategories)
+                .FirstOrDefaultAsync(g => g.Id == id);
+
+            if (game == null)
+            {
+                return NotFound(new { message = "Jeu non trouvé" });
+            }
+
+            if (!string.IsNullOrEmpty(name))
+                game.Name = name;
+
+            if (!string.IsNullOrEmpty(description))
+                game.Description = description;
+
+            if (price.HasValue)
+                game.Price = price.Value;
+
+            if (payload != null && payload.Length > 0)
+            {
+                using (var memoryStream = new MemoryStream())
+                {
+                    await payload.CopyToAsync(memoryStream);
+                    game.Payload = memoryStream.ToArray();
+                }
+            }
+
+            if (categoryIds != null)
+            {
+                appDbContext.GameCategories.RemoveRange(game.GameCategories);
+
+                if (!string.IsNullOrEmpty(categoryIds))
+                {
+                    var categoryIdList = categoryIds
+                        .Split(',')
+                        .Select(id => int.TryParse(id.Trim(), out var result) ? result : 0)
+                        .Where(id => id > 0)
+                        .ToList();
+
+                    foreach (var categoryId in categoryIdList)
+                    {
+                        var category = await appDbContext.Categories.FindAsync(categoryId);
+                        if (category != null)
+                        {
+                            appDbContext.GameCategories.Add(
+                                new GameCategory { GameId = game.Id, CategoryId = categoryId }
+                            );
+                        }
+                    }
+                }
+            }
+
+            await appDbContext.SaveChangesAsync();
+            return Ok(
+                new
+                {
+                    game.Id,
+                    game.Name,
+                    game.Description,
+                    game.Price,
+                    message = "Jeu mis à jour avec succès",
+                }
+            );
+        }
+
+        [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
+        [IgnoreAntiforgeryToken]
+        public async Task<IActionResult> DeleteGame(int id)
+        {
+            var game = await appDbContext.Games.FindAsync(id);
+            if (game == null)
+            {
+                return NotFound(new { message = "Jeu non trouvé" });
+            }
+
+            appDbContext.Games.Remove(game);
+            await appDbContext.SaveChangesAsync();
+            return Ok(new { message = $"Jeu '{game.Name}' supprimé avec succès" });
+        }
+
+        [HttpGet("{id}/download")]
+        [Authorize]
+        public async Task<IActionResult> DownloadGame(int id)
+        {
+            var game = await appDbContext.Games.FindAsync(id);
+            if (game == null)
+            {
+                return NotFound(new { message = "Jeu non trouvé" });
+            }
+
+            var user = await userManager.GetUserAsync(User);
+            var isAdmin = await userManager.IsInRoleAsync(user!, "Admin");
+            var hasGame = await appDbContext.UserGames.AnyAsync(ug =>
+                ug.UserId == user!.Id && ug.GameId == id
+            );
+
+            if (!isAdmin && !hasGame)
+            {
+                return Forbid();
+            }
+
+            return File(game.Payload, "application/octet-stream", $"{game.Name}.bin");
+        }
+
+        [HttpPost]
+        [Authorize]
+        [IgnoreAntiforgeryToken]
+        public async Task<IActionResult> PurchaseGame(int id)
+        {
+            var game = await appDbContext.Games.FindAsync(id);
+            if (game == null)
+            {
+                return NotFound(new { message = "Jeu non trouvé" });
+            }
+
+            var user = await userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return Unauthorized(new { message = "Utilisateur non authentifié" });
+            }
+
+            var alreadyOwned = await appDbContext.UserGames.AnyAsync(ug =>
+                ug.UserId == user.Id && ug.GameId == id
+            );
+
+            if (alreadyOwned)
+            {
+                return BadRequest(new { message = "Vous possédez déjà ce jeu" });
+            }
+
+            var purchase = new UserGame
+            {
+                UserId = user.Id,
+                GameId = id,
+                PurchaseDate = DateTime.UtcNow,
+            };
+
+            appDbContext.UserGames.Add(purchase);
+            await appDbContext.SaveChangesAsync();
+            return Ok(
+                new
+                {
+                    message = $"Jeu '{game.Name}' acheté avec succès !",
+                    game = new
+                    {
+                        game.Id,
+                        game.Name,
+                        game.Description,
+                        game.Price,
+                    },
+                    purchaseDate = purchase.PurchaseDate,
+                }
+            );
+        }
+
+        [HttpGet("my-games")]
+        [Authorize]
+        public async Task<IActionResult> GetMyGames()
+        {
+            var user = await userManager.GetUserAsync(User);
+
+            if (user == null)
+            {
+                return Unauthorized(new { message = "Utilisateur non authentifié" });
+            }
+
+            var myGames = await appDbContext
+                .UserGames.Where(ug => ug.UserId == user.Id)
+                .Include(ug => ug.Game)
+                    .ThenInclude(g => g.GameCategories)
+                        .ThenInclude(gc => gc.Category)
+                .Select(ug => new
+                {
+                    ug.Game.Id,
+                    ug.Game.Name,
+                    ug.Game.Description,
+                    ug.Game.Price,
+                    PayloadSize = ug.Game.Payload.Length,
+                    PurchaseDate = ug.PurchaseDate,
+                    Categories = ug.Game.GameCategories.Select(gc => new
+                    {
+                        gc.Category.Id,
+                        gc.Category.Name,
+                    }),
+                })
+                .ToListAsync();
+
+            return Ok(new { totalGames = myGames.Count, games = myGames });
+        }
+
+        [HttpGet("{id}/owned")]
+        [Authorize]
+        public async Task<IActionResult> CheckIfOwned(int id)
+        {
+            var user = await userManager.GetUserAsync(User);
+
+            if (user == null)
+            {
+                return Unauthorized(new { message = "Utilisateur non authentifié" });
+            }
+
+            var isAdmin = await userManager.IsInRoleAsync(user, "Admin");
+            var owned = await appDbContext.UserGames.AnyAsync(ug =>
+                ug.UserId == user.Id && ug.GameId == id
+            );
+
+            return Ok(
+                new
+                {
+                    gameId = id,
+                    owned = owned,
+                    isAdmin = isAdmin,
+                    canDownload = owned || isAdmin,
                 }
             );
         }

@@ -1,0 +1,338 @@
+@model List<Gauniv.WebServer.Data.Game>
+@{
+    ViewData["Title"] = "Administration";
+    var categories = (List<Gauniv.WebServer.Data.Category>)ViewBag.Categories;
+}
+
+<div class="container">
+    <div class="text-center mb-4">
+        <h1 class="display-4">⚙️ Panneau d'Administration</h1>
+        <p class="lead">Gestion des jeux et catégories</p>
+    </div>
+
+    <!-- Gestion des Catégories -->
+    <div class="admin-section">
+        <h2>📁 Gestion des Catégories</h2>
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <h5>Ajouter une Catégorie</h5>
+                <div class="input-group mb-2">
+                    <input type="text" class="form-control" id="categoryName" placeholder="Nom de la catégorie">
+                    <input type="text" class="form-control" id="categoryDescription" placeholder="Description">
+                    <button class="btn btn-success" onclick="addCategory()">➕ Ajouter</button>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            @foreach (var category in categories)
+            {
+                <div class="col-md-3 mb-3">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6>@category.Name</h6>
+                            <p class="text-muted small">@category.Description</p>
+                            <button class="btn btn-danger btn-sm w-100" onclick="deleteCategory(@category.Id, '@category.Name')">
+                                🗑️ Supprimer
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Gestion des Jeux -->
+    <div class="admin-section">
+        <h2>🎮 Gestion des Jeux</h2>
+        <button class="btn btn-success mb-3" data-bs-toggle="modal" data-bs-target="#addGameModal">
+            ➕ Ajouter un Jeu
+        </button>
+
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nom</th>
+                        <th>Prix</th>
+                        <th>Taille</th>
+                        <th>Catégories</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var game in Model)
+                    {
+                        <tr>
+                            <td>@game.Id</td>
+                            <td>@game.Name</td>
+                            <td>@game.Price.ToString("C")</td>
+                            <td>@(game.Payload.Length / 1024) KB</td>
+                            <td>
+                                @foreach (var gc in game.GameCategories)
+                                {
+                                    <span class="category-badge">@gc.Category.Name</span>
+                                }
+                            </td>
+                            <td>
+                                <button class="btn btn-danger btn-sm" onclick="deleteGame(@game.Id, '@game.Name')">
+                                    🗑️ Supprimer
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Ajouter un Jeu -->
+<div class="modal fade" id="addGameModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Ajouter un Nouveau Jeu</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addGameForm">
+                    <div class="mb-3">
+                        <label class="form-label">Nom du Jeu</label>
+                        <input type="text" class="form-control" id="gameName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-control" id="gameDescription" rows="3" required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Prix (€)</label>
+                        <input type="number" class="form-control" id="gamePrice" step="0.01" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Fichier du Jeu</label>
+                        <input type="file" class="form-control" id="gamePayload" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Catégories</label>
+                        <select class="form-select" id="gameCategories" multiple>
+                            @foreach (var category in categories)
+                            {
+                                <option value="@category.Id">@category.Name</option>
+                            }
+                        </select>
+                        <small class="text-muted">Maintenez Ctrl pour sélectionner plusieurs catégories</small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-primary" onclick="submitGame()">Créer le Jeu</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        async function addCategory() {
+            const name = document.getElementById('categoryName').value;
+            const description = document.getElementById('categoryDescription').value;
+
+            if (!name) {
+                alert('Le nom est requis');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/1.0.0/categories', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, description }),
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    await Swal.fire({
+                        title: 'Succès !',
+                        text: data.message,
+                        icon: 'success',
+                        confirmButtonColor: '#198754'
+                    });
+                    location.reload();
+                } else {
+                    Swal.fire({
+                        title: 'Erreur',
+                        text: data.message,
+                        icon: 'error',
+                        confirmButtonColor: '#dc3545'
+                    });
+                }
+            } catch (error) {
+                Swal.fire({
+                    title: 'Erreur',
+                    text: 'Erreur de connexion',
+                    icon: 'error',
+                    confirmButtonColor: '#dc3545'
+                });
+            }
+        }
+
+        async function deleteCategory(id, name) {
+            const result = await Swal.fire({
+                title: 'Êtes-vous sûr ?',
+                text: `Supprimer la catégorie "${name}" ?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Oui, supprimer',
+                cancelButtonText: 'Annuler'
+            });
+
+            if (!result.isConfirmed) return;
+
+            try {
+                const response = await fetch(`/api/1.0.0/categories/${id}`, { 
+                    method: 'DELETE',
+                    credentials: 'include'
+                });
+                const data = await response.json();
+                
+                if (response.ok) {
+                    await Swal.fire({
+                        title: 'Supprimé !',
+                        text: data.message,
+                        icon: 'success',
+                        confirmButtonColor: '#198754'
+                    });
+                    location.reload();
+                } else {
+                    Swal.fire({
+                        title: 'Erreur',
+                        text: data.message,
+                        icon: 'error',
+                        confirmButtonColor: '#dc3545'
+                    });
+                }
+            } catch (error) {
+                Swal.fire({
+                    title: 'Erreur',
+                    text: 'Erreur de connexion',
+                    icon: 'error',
+                    confirmButtonColor: '#dc3545'
+                });
+            }
+        }
+
+        async function submitGame() {
+            const nameInput = document.getElementById('gameName').value;
+            const descriptionInput = document.getElementById('gameDescription').value;
+            const priceInput = document.getElementById('gamePrice').value;
+            const payloadFile = document.getElementById('gamePayload').files[0];
+
+            // Validation
+            if (!nameInput || !descriptionInput || !priceInput || !payloadFile) {
+                Swal.fire({
+                    title: 'Champs manquants',
+                    text: 'Veuillez remplir tous les champs et sélectionner un fichier',
+                    icon: 'warning',
+                    confirmButtonColor: '#ffc107'
+                });
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('name', nameInput);
+            formData.append('description', descriptionInput);
+            formData.append('price', priceInput);
+            formData.append('payload', payloadFile);
+
+            const categories = Array.from(document.getElementById('gameCategories').selectedOptions)
+                .map(opt => opt.value)
+                .join(',');
+            formData.append('categoryIds', categories);
+
+            try {
+                const response = await fetch('/api/1.0.0/games/CreateGame', {
+                    method: 'POST',
+                    body: formData,
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    await Swal.fire({
+                        title: 'Succès !',
+                        text: 'Jeu créé avec succès !',
+                        icon: 'success',
+                        confirmButtonColor: '#198754'
+                    });
+                    location.reload();
+                } else {
+                    Swal.fire({
+                        title: 'Erreur',
+                        text: data.message || 'Erreur',
+                        icon: 'error',
+                        confirmButtonColor: '#dc3545'
+                    });
+                }
+            } catch (error) {
+                Swal.fire({
+                    title: 'Erreur',
+                    text: 'Erreur de connexion',
+                    icon: 'error',
+                    confirmButtonColor: '#dc3545'
+                });
+            }
+        }
+
+        async function deleteGame(id, name) {
+            const result = await Swal.fire({
+                title: 'Êtes-vous sûr ?',
+                text: `Supprimer le jeu "${name}" ?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Oui, supprimer',
+                cancelButtonText: 'Annuler'
+            });
+
+            if (!result.isConfirmed) return;
+
+            try {
+                const response = await fetch(`/api/1.0.0/games/DeleteGame/${id}`, { 
+                    method: 'DELETE',
+                    credentials: 'include'
+                });
+                const data = await response.json();
+                
+                if (response.ok) {
+                    await Swal.fire({
+                        title: 'Supprimé !',
+                        text: data.message,
+                        icon: 'success',
+                        confirmButtonColor: '#198754'
+                    });
+                    location.reload();
+                } else {
+                    Swal.fire({
+                        title: 'Erreur',
+                        text: data.message,
+                        icon: 'error',
+                        confirmButtonColor: '#dc3545'
+                    });
+                }
+            } catch (error) {
+                Swal.fire({
+                    title: 'Erreur',
+                    text: 'Erreur de connexion',
+                    icon: 'error',
+                    confirmButtonColor: '#dc3545'
+                });
+            }
+        }
+    </script>
+}

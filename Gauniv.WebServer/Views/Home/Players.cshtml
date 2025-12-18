@@ -1,0 +1,101 @@
+@model List<Gauniv.WebServer.Data.User>
+@using Gauniv.WebServer.Websocket
+@{
+    ViewData["Title"] = "Joueurs";
+}
+
+<div class="container">
+    <div class="text-center mb-4">
+        <h1 class="display-4">👥 Communauté Gauniv</h1>
+        <p class="lead">@Model.Count joueur(s) inscrit(s)</p>
+    </div>
+
+    <!-- Statistiques -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="stat-card">
+                <p class="mb-0">Joueurs Inscrits</p>
+                <h3>@Model.Count</h3>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-card" style="background: linear-gradient(135deg, #56ab2f 0%, #a8e063 100%);">
+                <p class="mb-0">En Ligne</p>
+                <h3>@OnlineHub.ConnectedUsers.Count</h3>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                <p class="mb-0">Total Jeux Achetés</p>
+                <h3>@Model.Sum(u => u.PurchasedGames.Count)</h3>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtre En ligne / Tous -->
+    <div class="mb-3">
+        <button class="btn btn-primary me-2" onclick="filterPlayers('all')">Tous les joueurs</button>
+        <button class="btn btn-success" onclick="filterPlayers('online')">En ligne uniquement</button>
+    </div>
+
+    <!-- Liste des joueurs -->
+    <div id="players-list">
+        @foreach (var player in Model)
+        {
+            var isOnline = OnlineHub.ConnectedUsers.ContainsKey(player.Id);
+            <div class="player-card" data-online="@isOnline.ToString().ToLower()">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <h5 class="mb-1">
+                            @if (isOnline)
+                            {
+                                <span class="player-status-online">🟢</span>
+                            }
+                            else
+                            {
+                                <span class="player-status-offline">⚫</span>
+                            }
+                            @player.FirstName @player.LastName
+                        </h5>
+                        <p class="text-muted mb-0">@player.Email</p>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <div>
+                            <strong>@player.PurchasedGames.Count</strong> jeu(x)
+                        </div>
+                    </div>
+                    <div class="col-md-3 text-end">
+                        @if (isOnline)
+                        {
+                            <span class="badge bg-success">En ligne</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">Hors ligne</span>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function filterPlayers(filter) {
+            const cards = document.querySelectorAll('.player-card');
+            cards.forEach(card => {
+                if (filter === 'all') {
+                    card.style.display = '';
+                } else if (filter === 'online') {
+                    card.style.display = card.dataset.online === 'true' ? '' : 'none';
+                }
+            });
+        }
+
+        // Auto-refresh toutes les 10 secondes
+        setInterval(() => {
+            location.reload();
+        }, 10000);
+    </script>
+}

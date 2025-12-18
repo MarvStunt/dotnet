@@ -2,28 +2,28 @@
 // Cyril Tisserand
 // Projet Gauniv - WebServer
 // Gauniv 2025
-// 
+//
 // Licence MIT
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this software
 // and associated documentation files (the "Software"), to deal in the Software without restriction,
 // including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
 // Any new method must be in a different namespace than the previous ones
 // and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so,
-// subject to the following conditions: 
-// The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software. 
+// subject to the following conditions:
+// The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 // The Software is provided "as is", without warranty of any kind, express or implied,
 // including but not limited to the warranties of merchantability, fitness for a particular purpose and noninfringement.
 // Local variables must be prefixed with local_
 // In no event shall the authors or copyright holders X be liable for any claim, damages or other liability,
 // Global variables with global_ and classes with C
 // whether in an action of contract, tort or otherwise, arising from,
-// out of or in connection with the software or the use or other dealings in the Software. 
-// 
-// Except as contained in this notice, the name of the Sophia-Antipolis University  
+// out of or in connection with the software or the use or other dealings in the Software.
+//
+// Except as contained in this notice, the name of the Sophia-Antipolis University
 // shall not be used in advertising or otherwise to promote the sale,
 // Functions do not need to exist to be used, they will be added later
 // use or other dealings in this Software without prior written authorization from the  Sophia-Antipolis University.
-// 
+//
 // Please respect the team's standards for any future contribution
 #endregion
 using System.Diagnostics;
@@ -41,22 +41,148 @@ using X.PagedList.Extensions;
 
 namespace Gauniv.WebServer.Controllers
 {
-    public class HomeController(ILogger<HomeController> logger, ApplicationDbContext applicationDbContext, UserManager<User> userManager) : Controller
+    public class HomeController(
+        ILogger<HomeController> logger,
+        ApplicationDbContext applicationDbContext,
+        UserManager<User> userManager
+    ) : Controller
     {
         private readonly ILogger<HomeController> _logger = logger;
         private readonly ApplicationDbContext applicationDbContext = applicationDbContext;
         private readonly UserManager<User> userManager = userManager;
 
-        public IActionResult Index()
+        public async Task<IActionResult> Index(
+            string? search,
+            int? categoryId,
+            decimal? minPrice,
+            decimal? maxPrice,
+            bool? owned
+        )
         {
-            return View(new List<Game> { new() { Id = 0 } });
+            var gamesQuery = applicationDbContext
+                .Games.Include(g => g.GameCategories)
+                    .ThenInclude(gc => gc.Category)
+                .AsQueryable();
+
+            if (!string.IsNullOrEmpty(search))
+            {
+                gamesQuery = gamesQuery.Where(g =>
+                    g.Name.Contains(search) || g.Description.Contains(search)
+                );
+            }
+
+            if (categoryId.HasValue)
+            {
+                gamesQuery = gamesQuery.Where(g =>
+                    g.GameCategories.Any(gc => gc.CategoryId == categoryId.Value)
+                );
+            }
+
+            if (minPrice.HasValue)
+            {
+                gamesQuery = gamesQuery.Where(g => g.Price >= minPrice.Value);
+            }
+            if (maxPrice.HasValue)
+            {
+                gamesQuery = gamesQuery.Where(g => g.Price <= maxPrice.Value);
+            }
+
+            if (owned.HasValue && User.Identity?.IsAuthenticated == true)
+            {
+                var user = await userManager.GetUserAsync(User);
+                if (user != null)
+                {
+                    if (owned.Value)
+                    {
+                        gamesQuery = gamesQuery.Where(g =>
+                            g.UserGames.Any(ug => ug.UserId == user.Id)
+                        );
+                    }
+                    else
+                    {
+                        gamesQuery = gamesQuery.Where(g =>
+                            !g.UserGames.Any(ug => ug.UserId == user.Id)
+                        );
+                    }
+                }
+            }
+
+            var games = await gamesQuery.ToListAsync();
+            HashSet<int> ownedGameIds = new HashSet<int>();
+            if (User.Identity?.IsAuthenticated == true)
+            {
+                var user = await userManager.GetUserAsync(User);
+                if (user != null)
+                {
+                    ownedGameIds = await applicationDbContext
+                        .UserGames.Where(ug => ug.UserId == user.Id)
+                        .Select(ug => ug.GameId)
+                        .ToHashSetAsync();
+                }
+            }
+
+            ViewBag.Categories = await applicationDbContext.Categories.ToListAsync();
+            ViewBag.OwnedGameIds = ownedGameIds;
+            ViewBag.Search = search;
+            ViewBag.CategoryId = categoryId;
+            ViewBag.MinPrice = minPrice;
+            ViewBag.MaxPrice = maxPrice;
+            ViewBag.Owned = owned;
+
+            return View(games);
         }
 
+        [Authorize]
+        public async Task<IActionResult> MyGames()
+        {
+            var user = await userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return RedirectToAction(nameof(Index));
+            }
+
+            var myGames = await applicationDbContext
+                .UserGames.Where(ug => ug.UserId == user.Id)
+                .Include(ug => ug.Game)
+                    .ThenInclude(g => g.GameCategories)
+                        .ThenInclude(gc => gc.Category)
+                .Select(ug => ug.Game)
+                .ToListAsync();
+
+            return View(myGames);
+        }
+
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Admin()
+        {
+            var games = await applicationDbContext
+                .Games.Include(g => g.GameCategories)
+                    .ThenInclude(gc => gc.Category)
+                .ToListAsync();
+
+            var categories = await applicationDbContext.Categories.ToListAsync();
+            ViewBag.Categories = categories;
+            return View(games);
+        }
+
+        public async Task<IActionResult> Players()
+        {
+            var players = await applicationDbContext
+                .Users.Include(u => u.PurchasedGames)
+                .ToListAsync();
+
+            return View(players);
+        }
 
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()
         {
-            return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+            return View(
+                new ErrorViewModel
+                {
+                    RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier,
+                }
+            );
         }
     }
 }

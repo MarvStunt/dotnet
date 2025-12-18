@@ -26,12 +26,12 @@
 // 
 // Please respect the team's standards for any future contribution
 #endregion
+using System.Text.Json;
 using Gauniv.WebServer.Data;
 using Gauniv.WebServer.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
-using System.Text.Json;
 
 public class OnlineStatus()
 {
@@ -53,7 +53,7 @@ namespace Gauniv.WebServer.Websocket
             _dbContext = dbContext;
         }
 
-        public async override Task OnConnectedAsync()
+        public override async Task OnConnectedAsync()
         {
             var local_userId = Context.UserIdentifier;
             if (local_userId != null)
@@ -61,19 +61,31 @@ namespace Gauniv.WebServer.Websocket
                 var local_user = await _userManager.FindByIdAsync(local_userId);
                 if (local_user != null)
                 {
-                    if (!ConnectedUsers.ContainsKey(local_userId))
+                    if (ConnectedUsers.ContainsKey(local_userId))
                     {
                         ConnectedUsers[local_userId].Count++;
+                    }
+                    else
+                    {
+                        ConnectedUsers[local_userId] = new OnlineStatus
+                        {
+                            User = local_user,
+                            Count = 1,
+                        };
 
                         // Notifier tous les clients qu'un utilisateur est en ligne
-                        await Clients.All.SendAsync("UserOnline", local_user.UserName, local_userId);
+                        await Clients.All.SendAsync(
+                            "UserOnline",
+                            local_user.UserName,
+                            local_userId
+                        );
                     }
                 }
                 await base.OnConnectedAsync();
             }
         }
 
-        public async override Task OnDisconnectedAsync(Exception? exception)
+        public override async Task OnDisconnectedAsync(Exception? exception)
         {
             var local_userId = Context.UserIdentifier;
             if (local_userId != null && ConnectedUsers.ContainsKey(local_userId))
@@ -87,14 +99,15 @@ namespace Gauniv.WebServer.Websocket
                     await Clients.All.SendAsync("UserOffline", local_user.UserName, local_userId);
 
                     // Marquer le joueur comme déconnecté dans toutes ses parties actives
-                    var local_activePlayers = await _dbContext.GamePlayers
-                        .Where(gp => gp.UserId == local_userId && gp.IsConnected)
+                    var local_activePlayers = await _dbContext
+                        .GamePlayers.Where(gp => gp.UserId == local_userId && gp.IsConnected)
                         .ToListAsync();
 
                     foreach (var local_player in local_activePlayers)
                     {
                         local_player.IsConnected = false;
-                        await Clients.Group($"game_{local_player.GameSessionId}")
+                        await Clients
+                            .Group($"game_{local_player.GameSessionId}")
                             .SendAsync("PlayerDisconnected", local_player.Id, local_user.UserName);
                     }
                     await _dbContext.SaveChangesAsync();
@@ -118,7 +131,7 @@ namespace Gauniv.WebServer.Websocket
             {
                 GameMasterId = local_userId,
                 GridSize = gridSize,
-                Status = GameSessionStatus.Waiting
+                Status = GameSessionStatus.Waiting,
             };
 
             _dbContext.GameSessions.Add(local_gameSession);
@@ -136,8 +149,8 @@ namespace Gauniv.WebServer.Websocket
         public async Task StartGame(string gameCode)
         {
             var local_userId = Context.UserIdentifier;
-            var local_session = await _dbContext.GameSessions
-                .Include(gs => gs.Players)
+            var local_session = await _dbContext
+                .GameSessions.Include(gs => gs.Players)
                 .FirstOrDefaultAsync(gs => gs.Code == gameCode && gs.GameMasterId == local_userId);
 
             if (local_session == null)
@@ -153,7 +166,9 @@ namespace Gauniv.WebServer.Websocket
             await _dbContext.SaveChangesAsync();
 
             // Notifier tous les joueurs
-            await Clients.Group($"game_{local_session.Id}").SendAsync("GameStarted", local_session.Id);
+            await Clients
+                .Group($"game_{local_session.Id}")
+                .SendAsync("GameStarted", local_session.Id);
 
             // Démarrer le premier round
             await StartRound(gameCode);
@@ -165,8 +180,8 @@ namespace Gauniv.WebServer.Websocket
         public async Task StartRound(string gameCode)
         {
             var local_userId = Context.UserIdentifier;
-            var local_session = await _dbContext.GameSessions
-                .Include(gs => gs.Rounds)
+            var local_session = await _dbContext
+                .GameSessions.Include(gs => gs.Rounds)
                 .FirstOrDefaultAsync(gs => gs.Code == gameCode && gs.GameMasterId == local_userId);
 
             if (local_session == null)
@@ -189,14 +204,16 @@ namespace Gauniv.WebServer.Websocket
             {
                 GameSessionId = local_session.Id,
                 RoundNumber = local_session.CurrentRound,
-                Pattern = JsonSerializer.Serialize(local_pattern)
+                Pattern = JsonSerializer.Serialize(local_pattern),
             };
 
             _dbContext.GameRounds.Add(local_round);
             await _dbContext.SaveChangesAsync();
 
             // Envoyer le pattern aux joueurs
-            await Clients.Group($"game_{local_session.Id}").SendAsync("ShowPattern", local_pattern, local_session.CurrentRound);
+            await Clients
+                .Group($"game_{local_session.Id}")
+                .SendAsync("ShowPattern", local_pattern, local_session.CurrentRound);
         }
 
         /// <summary>
@@ -205,8 +222,8 @@ namespace Gauniv.WebServer.Websocket
         public async Task StopGame(string gameCode)
         {
             var local_userId = Context.UserIdentifier;
-            var local_session = await _dbContext.GameSessions
-                .Include(gs => gs.Players)
+            var local_session = await _dbContext
+                .GameSessions.Include(gs => gs.Players)
                     .ThenInclude(p => p.User)
                 .FirstOrDefaultAsync(gs => gs.Code == gameCode && gs.GameMasterId == local_userId);
 
@@ -218,12 +235,14 @@ namespace Gauniv.WebServer.Websocket
             await _dbContext.SaveChangesAsync();
 
             // Envoyer les scores finaux
-            var local_leaderboard = local_session.Players
-                .OrderByDescending(p => p.Score)
+            var local_leaderboard = local_session
+                .Players.OrderByDescending(p => p.Score)
                 .Select(p => new { p.User!.UserName, p.Score })
                 .ToList();
 
-            await Clients.Group($"game_{local_session.Id}").SendAsync("GameEnded", local_leaderboard);
+            await Clients
+                .Group($"game_{local_session.Id}")
+                .SendAsync("GameEnded", local_leaderboard);
         }
 
         // ========== Méthodes pour les joueurs ==========
@@ -237,8 +256,8 @@ namespace Gauniv.WebServer.Websocket
             if (local_userId == null)
                 throw new HubException("User not authenticated");
 
-            var local_session = await _dbContext.GameSessions
-                .Include(gs => gs.Players)
+            var local_session = await _dbContext
+                .GameSessions.Include(gs => gs.Players)
                 .FirstOrDefaultAsync(gs => gs.Code == gameCode);
 
             if (local_session == null)
@@ -255,7 +274,7 @@ namespace Gauniv.WebServer.Websocket
             {
                 GameSessionId = local_session.Id,
                 UserId = local_userId,
-                ConnectionId = Context.ConnectionId
+                ConnectionId = Context.ConnectionId,
             };
 
             _dbContext.GamePlayers.Add(local_player);
@@ -267,7 +286,9 @@ namespace Gauniv.WebServer.Websocket
             var local_user = await _userManager.FindByIdAsync(local_userId);
 
             // Notifier tous les joueurs de la partie
-            await Clients.Group($"game_{local_session.Id}").SendAsync("PlayerJoined", local_user?.UserName, local_player.Id);
+            await Clients
+                .Group($"game_{local_session.Id}")
+                .SendAsync("PlayerJoined", local_user?.UserName, local_player.Id);
 
             return true;
         }
@@ -281,8 +302,8 @@ namespace Gauniv.WebServer.Websocket
             if (local_userId == null)
                 throw new HubException("User not authenticated");
 
-            var local_session = await _dbContext.GameSessions
-                .Include(gs => gs.Rounds)
+            var local_session = await _dbContext
+                .GameSessions.Include(gs => gs.Rounds)
                 .Include(gs => gs.Players)
                 .FirstOrDefaultAsync(gs => gs.Code == gameCode);
 
@@ -296,14 +317,17 @@ namespace Gauniv.WebServer.Websocket
             if (local_player == null)
                 throw new HubException("You are not in this game");
 
-            var local_currentRound = local_session.Rounds
-                .FirstOrDefault(r => r.RoundNumber == local_session.CurrentRound);
+            var local_currentRound = local_session.Rounds.FirstOrDefault(r =>
+                r.RoundNumber == local_session.CurrentRound
+            );
 
             if (local_currentRound == null)
                 throw new HubException("Current round not found");
 
             // Vérifier si la tentative correspond au pattern
-            var local_pattern = JsonSerializer.Deserialize<List<int>>(local_currentRound.Pattern) ?? new List<int>();
+            var local_pattern =
+                JsonSerializer.Deserialize<List<int>>(local_currentRound.Pattern)
+                ?? new List<int>();
             var local_isCorrect = local_pattern.SequenceEqual(attempt);
 
             // Calculer les points (bonus si rapide)
@@ -328,7 +352,7 @@ namespace Gauniv.WebServer.Websocket
                 Attempt = JsonSerializer.Serialize(attempt),
                 IsCorrect = local_isCorrect,
                 PointsEarned = local_pointsEarned,
-                ReactionTimeMs = reactionTimeMs
+                ReactionTimeMs = reactionTimeMs,
             };
 
             _dbContext.PlayerAttempts.Add(local_playerAttempt);
@@ -337,8 +361,15 @@ namespace Gauniv.WebServer.Websocket
             var local_user = await _userManager.FindByIdAsync(local_userId);
 
             // Notifier tous les joueurs du résultat
-            await Clients.Group($"game_{local_session.Id}").SendAsync("PlayerSubmitted",
-                local_user?.UserName, local_isCorrect, local_pointsEarned, local_player.Score);
+            await Clients
+                .Group($"game_{local_session.Id}")
+                .SendAsync(
+                    "PlayerSubmitted",
+                    local_user?.UserName,
+                    local_isCorrect,
+                    local_pointsEarned,
+                    local_player.Score
+                );
         }
 
         /// <summary>
@@ -346,21 +377,21 @@ namespace Gauniv.WebServer.Websocket
         /// </summary>
         public async Task<object> GetLeaderboard(string gameCode)
         {
-            var local_session = await _dbContext.GameSessions
-                .Include(gs => gs.Players)
+            var local_session = await _dbContext
+                .GameSessions.Include(gs => gs.Players)
                     .ThenInclude(p => p.User)
                 .FirstOrDefaultAsync(gs => gs.Code == gameCode);
 
             if (local_session == null)
                 throw new HubException("Game not found");
 
-            var local_leaderboard = local_session.Players
-                .OrderByDescending(p => p.Score)
+            var local_leaderboard = local_session
+                .Players.OrderByDescending(p => p.Score)
                 .Select(p => new
                 {
                     p.User!.UserName,
                     p.Score,
-                    p.IsConnected
+                    p.IsConnected,
                 })
                 .ToList();
 
@@ -373,8 +404,9 @@ namespace Gauniv.WebServer.Websocket
         public async Task NextRound(string gameCode)
         {
             var local_userId = Context.UserIdentifier;
-            var local_session = await _dbContext.GameSessions
-                .FirstOrDefaultAsync(gs => gs.Code == gameCode && gs.GameMasterId == local_userId);
+            var local_session = await _dbContext.GameSessions.FirstOrDefaultAsync(gs =>
+                gs.Code == gameCode && gs.GameMasterId == local_userId
+            );
 
             if (local_session == null)
                 throw new HubException("Game not found or you are not the game master");
@@ -382,7 +414,9 @@ namespace Gauniv.WebServer.Websocket
             local_session.CurrentRound++;
             await _dbContext.SaveChangesAsync();
 
-            await Clients.Group($"game_{local_session.Id}").SendAsync("RoundChanged", local_session.CurrentRound);
+            await Clients
+                .Group($"game_{local_session.Id}")
+                .SendAsync("RoundChanged", local_session.CurrentRound);
             await StartRound(gameCode);
         }
     }

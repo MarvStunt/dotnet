@@ -80,10 +80,5 @@ namespace Gauniv.WebServer.Data
                 .HasForeignKey(ug => ug.GameId)
                 .OnDelete(DeleteBehavior.Cascade);
         }
-
-        internal async Task SaveChangesAsync()
-        {
-            throw new NotImplementedException();
-        }
     }
 }

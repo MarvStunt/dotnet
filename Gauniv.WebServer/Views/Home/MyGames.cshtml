@@ -1,0 +1,54 @@
+@model List<Gauniv.WebServer.Data.Game>
+@{
+    ViewData["Title"] = "Mes Jeux";
+}
+
+<div class="container">
+    <div class="text-center mb-4">
+        <h1 class="display-4">📦 Ma Bibliothèque</h1>
+        <p class="lead">Vous possédez @Model.Count jeu(x)</p>
+    </div>
+
+    @if (Model.Any())
+    {
+        <div class="row">
+            @foreach (var game in Model)
+            {
+                <div class="col-md-4 mb-4">
+                    <div class="card game-card">
+                        <div class="game-card-header">
+                            @game.Name
+                        </div>
+                        <div class="game-card-body">
+                            <div class="game-description">
+                                @game.Description
+                            </div>
+                            <div class="my-3">
+                                @foreach (var gc in game.GameCategories)
+                                {
+                                    <span class="category-badge">@gc.Category.Name</span>
+                                }
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div class="game-price">@game.Price.ToString("C")</div>
+                                <div>
+                                    <span class="text-muted small">📦 @(game.Payload.Length / 1024) KB</span>
+                                </div>
+                            </div>
+                            <a href="/api/1.0.0/games/@game.Id/download" class="btn btn-primary w-100">
+                                ⬇️ Télécharger
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info text-center">
+            <h4>😕 Vous ne possédez aucun jeu</h4>
+            <p>Rendez-vous dans la <a asp-action="Index" class="alert-link">boutique</a> pour acheter vos premiers jeux !</p>
+        </div>
+    }
+</div>
