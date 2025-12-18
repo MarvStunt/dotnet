@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configuration de la base de données
+// Configuration de la base de donnée/4s
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
     ?? "Server=localhost;Port=5432;Database=gameserver;Username=admin;Password=password";
 

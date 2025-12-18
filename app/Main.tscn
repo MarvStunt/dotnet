@@ -1,9 +1,10 @@
-[gd_scene load_steps=5 format=3 uid="uid://b28hkiq6cwsxt"]
+[gd_scene load_steps=6 format=3 uid="uid://b28hkiq6cwsxt"]
 
 [ext_resource type="Script" uid="uid://coru8v2vhejjt" path="res://Main.cs" id="1_1bvp3"]
 [ext_resource type="Script" uid="uid://br6u4mdl0p8er" path="res://NetworkManager.cs" id="1_h2yge"]
 [ext_resource type="PackedScene" uid="uid://cxt0hnbwuywl" path="res://Hub.tscn" id="3_cm0pq"]
 [ext_resource type="PackedScene" uid="uid://c5et0hhwdvcf3" path="res://Game.tscn" id="4_cm0pq"]
+[ext_resource type="PackedScene" path="res://ResultPanel.tscn" id="5_fos0i"]
 
 [node name="Main" type="Control"]
 custom_minimum_size = Vector2(1150, 650)
@@ -22,9 +23,24 @@ script = ExtResource("1_h2yge")
 
 [node name="Hub" parent="." instance=ExtResource("3_cm0pq")]
 layout_mode = 1
-offset_right = -80.150024
-offset_bottom = -58.950043
+anchors_preset = -1
+offset_right = 2.0
+offset_bottom = -1.0
 
 [node name="Game" parent="." instance=ExtResource("4_cm0pq")]
 visible = false
 layout_mode = 1
+anchors_preset = -1
+anchor_right = 0.708
+anchor_bottom = 0.65000004
+offset_left = 602.0
+offset_right = 224.79999
+offset_bottom = 78.49997
+grow_horizontal = 1
+grow_vertical = 1
+
+[node name="ResultPanel" parent="." instance=ExtResource("5_fos0i")]
+visible = false
+layout_mode = 0
+anchor_right = 0.0
+anchor_bottom = 0.0

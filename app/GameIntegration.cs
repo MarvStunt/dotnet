@@ -92,11 +92,6 @@ public partial class GameIntegration : Node2D
     {
         GD.Print($"Integration: {playerName} submitted - {isCorrect} (+{pointsEarned}pts, total: {totalScore})");
         gameLogic.OnPlayerSubmitted(playerName, isCorrect, pointsEarned, totalScore);
-
-        if (!isCorrect && resultPanel != null)
-        {
-            resultPanel.ShowLost($"{playerName} got it wrong!");
-        }
     }
 
     /// <summary>
@@ -106,12 +101,6 @@ public partial class GameIntegration : Node2D
     {
         GD.Print($"Integration: Game ended - Leaderboard: {leaderboardJson}");
         gameLogic.OnGameEnded(leaderboardJson);
-
-        // Show result panel with leaderboard
-        if (resultPanel != null)
-        {
-            resultPanel.ShowWon($"Game finished!\nLeaderboard: {leaderboardJson}");
-        }
     }
 
     /// <summary>
