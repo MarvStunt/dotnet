@@ -35,14 +35,51 @@ namespace Gauniv.WebServer.Data
     public class ApplicationDbContext : IdentityDbContext<User>
     {
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
-            : base(options)
-        {
-        }
+            : base(options) { }
+
         public DbSet<Game> Games { get; set; }
         public DbSet<GameSession> GameSessions { get; set; }
         public DbSet<GamePlayer> GamePlayers { get; set; }
         public DbSet<GameRound> GameRounds { get; set; }
         public DbSet<PlayerAttempt> PlayerAttempts { get; set; }
+        public DbSet<Category> Categories { get; set; }
+        public DbSet<UserGame> UserGames { get; set; }
+        public DbSet<GameCategory> GameCategories { get; set; }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+            modelBuilder.Entity<GameCategory>().HasKey(gc => new { gc.GameId, gc.CategoryId });
+
+            modelBuilder
+                .Entity<GameCategory>()
+                .HasOne(gc => gc.Game)
+                .WithMany(g => g.GameCategories)
+                .HasForeignKey(gc => gc.GameId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder
+                .Entity<GameCategory>()
+                .HasOne(gc => gc.Category)
+                .WithMany(c => c.GameCategories)
+                .HasForeignKey(gc => gc.CategoryId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<UserGame>().HasKey(ug => new { ug.UserId, ug.GameId });
+            modelBuilder
+                .Entity<UserGame>()
+                .HasOne(ug => ug.User)
+                .WithMany(u => u.PurchasedGames)
+                .HasForeignKey(ug => ug.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder
+                .Entity<UserGame>()
+                .HasOne(ug => ug.Game)
+                .WithMany(g => g.UserGames)
+                .HasForeignKey(ug => ug.GameId)
+                .OnDelete(DeleteBehavior.Cascade);
+        }
 
         internal async Task SaveChangesAsync()
         {

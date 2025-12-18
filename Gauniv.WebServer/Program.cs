@@ -96,6 +96,52 @@ builder.Services.AddScoped<MappingProfile, MappingProfile>();
 
 var app = builder.Build();
 
+// Seed test data (InMemory uniquement)
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    
+    // Vérifier si des données existent déjà
+    if (!context.Games.Any())
+    {
+        // Créer des catégories
+        var actionCategory = new Category { Name = "Action", Description = "Jeux d'action" };
+        var rpgCategory = new Category { Name = "RPG", Description = "Jeux de rôle" };
+        
+        context.Categories.AddRange(actionCategory, rpgCategory);
+        context.SaveChanges();
+        
+        // Créer des jeux
+        var game1 = new Game 
+        { 
+            Name = "Test Game 1",
+            Description = "Un jeu de test",
+            Payload = new byte[] { 0x01, 0x02, 0x03 },
+            Price = 19.99m
+        };
+        
+        var game2 = new Game 
+        { 
+            Name = "Test Game 2",
+            Description = "Un autre jeu de test",
+            Payload = new byte[] { 0x04, 0x05, 0x06 },
+            Price = 29.99m
+        };
+        
+        context.Games.AddRange(game1, game2);
+        context.SaveChanges();
+        
+        // Associer des catégories aux jeux
+        context.GameCategories.AddRange(
+            new GameCategory { Game = game1, Category = actionCategory },
+            new GameCategory { Game = game2, Category = rpgCategory }
+        );
+        context.SaveChanges();
+        
+        Console.WriteLine("✅ Données de test créées avec succès !");
+    }
+}
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {

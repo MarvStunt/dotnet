@@ -38,5 +38,23 @@ namespace Gauniv.WebServer.Data
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         [Key]
         public int Id { get; set; }
+
+        [Required]
+        [MaxLength(200)]
+        public string Name { get; set; } = string.Empty;
+
+        [MaxLength(2000)]
+        public string Description { get; set; } = string.Empty;
+
+        [Required]
+        public byte[] Payload { get; set; } = Array.Empty<byte>();
+
+        [Required]
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal Price { get; set; }
+
+        // Relations many-to-many
+        public ICollection<GameCategory> GameCategories { get; set; } = new List<GameCategory>();
+        public ICollection<UserGame> UserGames { get; set; } = new List<UserGame>();
     }
 }
