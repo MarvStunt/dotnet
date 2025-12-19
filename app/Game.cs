@@ -50,6 +50,20 @@ public partial class Game : Control
 		SetupNetworkGame();
 	}
 
+	public override void _ExitTree()
+	{
+		// Disconnect network signals to prevent errors when Game is freed but NetworkManager persists
+		if (networkManager != null)
+		{
+			networkManager.ShowPattern -= OnShowPattern;
+			networkManager.RoundChanged -= OnRoundChanged;
+			networkManager.PlayerSubmitted -= OnPlayerSubmitted;
+			networkManager.GameEnded -= OnGameEnded;
+			networkManager.PlayerJoined -= OnPlayerJoined;
+			networkManager.PlayerListReceived -= OnPlayerListReceived;
+		}
+	}
+
 	private void ConnectButtonSignals()
 	{
 		if (ui.DisconnectButton != null)
@@ -68,14 +82,22 @@ public partial class Game : Control
 
 	private void SetupNetworkGame()
 	{
-
 		string gameId = networkManager?.GameId ?? "";
 		string playerName = networkManager?.PlayerName ?? "";
 		
 		ui.SetupForNetworkGame(IsMaster, gameId, playerName, playerManager.PlayerCount, RoundNumber);
 		
-		// Request the full player list from the server
+		// Request the full player list from the server after a short delay
+		// to ensure connection is fully established
 		if (networkManager != null)
+		{
+			CallDeferred(nameof(RequestPlayerList));
+		}
+	}
+
+	private void RequestPlayerList()
+	{
+		if (networkManager != null && networkManager.IsConnected)
 		{
 			networkManager.GetPlayerList();
 		}
@@ -151,12 +173,15 @@ public partial class Game : Control
 	// Handler for player submission result from server
 	public void OnPlayerSubmitted(string playerNameReceived, bool isCorrect, int pointsEarned, int totalScore)
 	{
+		// Check if Game scene is still valid
+		if (!IsInsideTree() || IsQueuedForDeletion())
+			return;
+
 		// Get current player name from NetworkManager
 		string currentPlayerName = networkManager != null ? networkManager.PlayerName : "";
 		
 		if (currentPlayerName == playerNameReceived)
 		{
-
 			if (isCorrect)
 			{
 				ui.SetInfoText($"✅ Correct! +{pointsEarned}pts (Total: {totalScore})");
@@ -190,6 +215,9 @@ public partial class Game : Control
 	// Handler for game ended signal from server
 	public void OnGameEnded(string leaderboardJson)
 	{
+		// Check if Game scene is still valid
+		if (!IsInsideTree() || IsQueuedForDeletion())
+			return;
 
 		var json = new Json();
 		json.Parse(leaderboardJson);
@@ -452,6 +480,9 @@ public partial class Game : Control
 
 	public void OnPlayerJoined(string playerName)
 	{
+		// Check if Game scene is still valid
+		if (!IsInsideTree() || IsQueuedForDeletion())
+			return;
 
 		// The server will send the complete player list with roles via PlayerListReceived
 		// so we don't need to manually add players here - just update the UI
@@ -467,13 +498,15 @@ public partial class Game : Control
 
 	public void OnPlayerListReceived(string playerListJson)
 	{
+		// Check if Game scene is still valid
+		if (!IsInsideTree() || IsQueuedForDeletion())
+			return;
 
 		// Update player list using PlayerManager
 		playerManager.UpdateFromJson(playerListJson);
 		
 		// Update UI player count
 		ui.SetPlayersCountText(playerManager.PlayerCount);
-		
 	}
 
 	public void OnStartGamePressed()

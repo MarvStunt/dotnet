@@ -459,7 +459,8 @@ public partial class NetworkManager : Control
 		{
 			type = 1,
 			target = "SubmitAttempt",
-			arguments = new object[] { gameId, attemptList, reactionTimeMs }
+			arguments = new object[] { gameId, attemptList, reactionTimeMs },
+			invocationId = Guid.NewGuid().ToString()
 		};
 
 		SendMessage(message);
