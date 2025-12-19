@@ -27,6 +27,7 @@
 // Please respect the team's standards for any future contribution
 #endregion
 using System.ComponentModel.DataAnnotations;
+using System.IO.Compression;
 using System.Text;
 using CommunityToolkit.HighPerformance;
 using CommunityToolkit.HighPerformance.Memory;
@@ -43,7 +44,7 @@ using Microsoft.Net.Http.Headers;
 
 namespace Gauniv.WebServer.Api
 {
-    [Route("api/1.0.0/[controller]/[action]")]
+    [Route("api/1.0.0/[controller]")]
     [ApiController]
     public class GamesController(
         ApplicationDbContext appDbContext,
@@ -348,14 +349,68 @@ namespace Gauniv.WebServer.Api
                 return Forbid();
             }
 
+            // Special handling for Memory Game - serve from filesystem
+            if (game.Name == "Memory Game")
+            {
+                var gameDirectory = "/app/games/memorygame";
+                
+                // Check if running on Windows (development) vs Linux (Docker)
+                if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
+                {
+                    // Development path
+                    gameDirectory = Path.Combine(Directory.GetCurrentDirectory(), "..", "executable");
+                }
+
+                if (!Directory.Exists(gameDirectory))
+                {
+                    return NotFound(new { message = "Les fichiers du jeu sont introuvables" });
+                }
+
+                // Create a zip file in memory
+                var memoryStream = new MemoryStream();
+                try
+                {
+                    using (var archive = new System.IO.Compression.ZipArchive(memoryStream, System.IO.Compression.ZipArchiveMode.Create, true))
+                    {
+                        var files = Directory.GetFiles(gameDirectory, "*", SearchOption.AllDirectories);
+                        foreach (var file in files)
+                        {
+                            var relativePath = Path.GetRelativePath(gameDirectory, file);
+                            var entry = archive.CreateEntry(relativePath);
+                            using var entryStream = entry.Open();
+                            using var fileStream = System.IO.File.OpenRead(file);
+                            await fileStream.CopyToAsync(entryStream);
+                        }
+                    }
+                    
+                    memoryStream.Position = 0;
+                    return File(memoryStream, "application/zip", $"{game.Name}.zip");
+                }
+                catch
+                {
+                    memoryStream?.Dispose();
+                    throw;
+                }
+            }
+
+            // Default behavior for other games - serve from database payload
             return File(game.Payload, "application/octet-stream", $"{game.Name}.bin");
         }
 
-        [HttpPost]
+        [HttpPost("{id}/purchase")]
+        [HttpPost("PurchaseGame")] // Legacy route for backward compatibility
         [Authorize]
         [IgnoreAntiforgeryToken]
-        public async Task<IActionResult> PurchaseGame(int id)
+        public async Task<IActionResult> PurchaseGame([FromRoute(Name = "id")] int? routeId = null, [FromQuery(Name = "id")] int? queryId = null)
         {
+            // Support both route parameter and query string parameter for backward compatibility
+            int id = routeId ?? queryId ?? 0;
+            
+            if (id == 0)
+            {
+                return BadRequest(new { message = "ID du jeu manquant" });
+            }
+            
             var game = await appDbContext.Games.FindAsync(id);
             if (game == null)
             {

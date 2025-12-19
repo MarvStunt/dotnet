@@ -131,6 +131,21 @@ using (var scope = app.Services.CreateScope())
             sportsCategory, puzzleCategory, simulationCategory, horrorCategory);
         context.SaveChanges();
 
+        // Créer le jeu Memory Game par défaut avec l'exécutable
+        var memoryGame = new Game
+        {
+            Name = "Memory Game",
+            Description = "A classic memory card matching game built with Godot. Test your memory skills by finding matching pairs of colorful cards!",
+            Payload = new byte[] { 0x01 }, // Placeholder - actual game files are in /app/games/memorygame/
+            Price = 0.00m, // Free game
+        };
+        context.Games.Add(memoryGame);
+        context.SaveChanges();
+
+        // Associer la catégorie Puzzle au Memory Game
+        context.GameCategories.Add(new GameCategory { Game = memoryGame, Category = puzzleCategory });
+        context.SaveChanges();
+
         // Créer des jeux aléatoires
         var random = new Random();
         var categories = new[] { actionCategory, rpgCategory, strategyCategory, adventureCategory, 

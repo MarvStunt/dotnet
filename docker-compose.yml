@@ -16,6 +16,8 @@ services:
           # - ConnectionStrings:redis=redis-sentinel:26379,serviceName=mymaster,password=redis
         ports:
           - "8457:80"
+        volumes:
+          - ./executable:/app/games/memorygame:ro
         depends_on:
           - postgres_primary
     gauniv.gameserver:
