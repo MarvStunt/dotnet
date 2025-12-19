@@ -6,78 +6,46 @@
 }
 
 <div style="display: flex; align-items: center; justify-content: center; min-height: calc(100vh - 200px); padding: 2rem;">
-    <div class="row" style="max-width: 900px; width: 100%; gap: 3rem;">
-        <div class="col-md-5">
-            <section>
-                <h2 style="color: #ffffff; font-weight: 700; margin-bottom: 1.5rem; font-size: 1.8rem;">Use a local account to log in.</h2>
-                <hr style="border-color: #2d2d4d; margin-bottom: 2rem;" />
-                <form id="account" method="post">
-                    <div asp-validation-summary="ModelOnly" style="color: #ef4444; margin-bottom: 1rem;"></div>
-                    
-                    <div class="form-floating mb-3">
-                        <input asp-for="Input.Email" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com" />
-                        <label asp-for="Input.Email" class="form-label">Email</label>
-                        <span asp-validation-for="Input.Email" style="color: #ef4444; font-size: 0.875rem; margin-top: 0.25rem; display: block;"></span>
-                    </div>
-                    
-                    <div class="form-floating mb-3">
-                        <input asp-for="Input.Password" class="form-control" autocomplete="current-password" aria-required="true" placeholder="password" />
-                        <label asp-for="Input.Password" class="form-label">Password</label>
-                        <span asp-validation-for="Input.Password" style="color: #ef4444; font-size: 0.875rem; margin-top: 0.25rem; display: block;"></span>
-                    </div>
-                    
-                    <div class="form-check mb-3">
-                        <input class="form-check-input" asp-for="Input.RememberMe" />
-                        <label class="form-check-label" asp-for="Input.RememberMe">
-                            Remember me
-                        </label>
-                    </div>
-                    
-                    <button id="login-submit" type="submit" class="w-100 btn btn-lg btn-primary" style="padding: 12px 20px; margin-bottom: 2rem;">Log in</button>
-                </form>
-                
-                <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-                    <p style="margin-bottom: 0;">
-                        <a id="forgot-password" asp-page="./ForgotPassword" style="color: #4c6ef5; text-decoration: none; font-weight: 500;">Forgot your password?</a>
-                    </p>
-                    <p style="margin-bottom: 0;">
-                        <a asp-page="./Register" asp-route-returnUrl="@Model.ReturnUrl" style="color: #4c6ef5; text-decoration: none; font-weight: 500;">Register as a new user</a>
-                    </p>
-                    <p style="margin-bottom: 0;">
-                        <a id="resend-confirmation" asp-page="./ResendEmailConfirmation" style="color: #4c6ef5; text-decoration: none; font-weight: 500;">Resend email confirmation</a>
-                    </p>
+    <div style="max-width: 500px; width: 100%;">
+        <section>
+            <h2 style="color: #ffffff; font-weight: 700; margin-bottom: 1.5rem; font-size: 1.8rem; text-align: center;">Use a local account to log in.</h2>
+            <hr style="border-color: #2d2d4d; margin-bottom: 2rem;" />
+            <form id="account" method="post">
+                <div asp-validation-summary="ModelOnly" style="color: #ef4444; margin-bottom: 1rem;"></div>
+
+                <div class="form-floating mb-3">
+                    <input asp-for="Input.Email" class="form-control" autocomplete="username"
+                        aria-required="true" />
+                    <label asp-for="Input.Email" class="form-label">Email</label>
+                    <span asp-validation-for="Input.Email"
+                        style="color: #ef4444; font-size: 0.875rem; margin-top: 0.25rem; display: block;"></span>
                 </div>
-            </section>
-        </div>
-        
-        <div class="col-md-5">
-            <section>
-                <h3 style="color: #ffffff; font-weight: 700; margin-bottom: 1.5rem; font-size: 1.5rem;">Use another service to log in.</h3>
-                <hr style="border-color: #2d2d4d; margin-bottom: 2rem;" />
-                @{
-                    if ((Model.ExternalLogins?.Count ?? 0) == 0)
-                    {
-                        <div style="background: #1a1a2e; border: 2px solid #2d2d4d; border-radius: 8px; padding: 1.5rem; color: #b0b0c0;">
-                            <p style="margin-bottom: 0;">
-                                There are no external authentication services configured. See this <a href="https://go.microsoft.com/fwlink/?LinkID=532715" style="color: #4c6ef5; text-decoration: none;">article about setting up this ASP.NET application to support logging in via external services</a>.
-                            </p>
-                        </div>
-                    }
-                    else
-                    {
-                        <form id="external-account" asp-page="./ExternalLogin" asp-route-returnUrl="@Model.ReturnUrl" method="post">
-                            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-                                @foreach (var provider in Model.ExternalLogins!)
-                                {
-                                    <button type="submit" class="btn btn-primary w-100" name="provider" value="@provider.Name" title="Log in using your @provider.DisplayName account" style="padding: 12px 20px;">
-                                        @provider.DisplayName
-                                    </button>
-                                }
-                            </div>
-                        </form>
-                    }
-                }
-            </section>
-        </div>
+
+                <div class="form-floating mb-3">
+                    <input asp-for="Input.Password" class="form-control" autocomplete="current-password"
+                        aria-required="true" />
+                    <label asp-for="Input.Password" class="form-label">Password</label>
+                    <span asp-validation-for="Input.Password"
+                        style="color: #ef4444; font-size: 0.875rem; margin-top: 0.25rem; display: block;"></span>
+                </div>
+
+                <div class="form-check mb-3">
+                    <input class="form-check-input" asp-for="Input.RememberMe" />
+                    <label class="form-check-label" asp-for="Input.RememberMe">
+                        Remember me
+                    </label>
+                </div>
+
+                <button id="login-submit" type="submit" class="w-100 btn btn-lg btn-primary"
+                    style="padding: 12px 20px; margin-bottom: 2rem;">Log in</button>
+            </form>
+
+            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                <p style="margin-bottom: 0;">
+                    <a asp-page="./Register" asp-route-returnUrl="@Model.ReturnUrl"
+                        style="color: #4c6ef5; text-decoration: none; font-weight: 500;">Register as a new user</a>
+                </p>
+            </div>
+        </section>
     </div>
 </div>
