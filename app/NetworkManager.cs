@@ -347,10 +347,6 @@ public partial class NetworkManager : Control
 					EmitSignal(SignalName.OperationFailed, "Failed to join game. The player name might already exist or the game code is invalid.", invocationId);
 				}
 			}
-			else
-			{
-				GD.PrintErr($"[NetworkManager] Unexpected result type: {result.ValueKind}");
-			}
 		}
 		else
 		{
@@ -366,7 +362,7 @@ public partial class NetworkManager : Control
 			arguments = new object[] { playerName, 4 }, // gameMasterName, gridSize
 			invocationId = Guid.NewGuid().ToString()
 		};
-		
+
 
 		SendMessage(message);
 	}
