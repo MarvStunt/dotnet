@@ -52,6 +52,8 @@ public partial class Game : Control
 			networkManager.GameEnded -= OnGameEnded;
 			networkManager.PlayerJoined -= OnPlayerJoined;
 			networkManager.PlayerDisconnected -= OnPlayerDisconnected;
+			networkManager.PlayerReconnected -= OnPlayerReconnected;
+			networkManager.GameMasterDisconnected -= OnGameMasterDisconnected;
 			networkManager.PlayerListReceived -= OnPlayerListReceived;
 		}
 	}
@@ -121,6 +123,8 @@ public partial class Game : Control
 		networkManager.GameEnded += OnGameEnded;
 		networkManager.PlayerJoined += OnPlayerJoined;
 		networkManager.PlayerDisconnected += OnPlayerDisconnected;
+		networkManager.PlayerReconnected += OnPlayerReconnected;
+		networkManager.GameMasterDisconnected += OnGameMasterDisconnected;
 		networkManager.PlayerListReceived += OnPlayerListReceived;
 
 	}
@@ -457,13 +461,52 @@ public partial class Game : Control
 	{
 		if (!IsInsideTree() || IsQueuedForDeletion())
 			return;
-
-		playerManager.MarkPlayerDisconnected(playerName);
 		
+		playerManager.MarkPlayerDisconnected(playerName);
 		string roleText = role == "master" ? "Game Master" : "Player";
 		ui.SetInfoText($"🔌 {playerName} ({roleText}) disconnected");
 		
 		GD.Print($"Player disconnected: {playerName} (Role: {role})");
+	}
+
+	public void OnPlayerReconnected(string playerName, string role)
+	{
+		if (!IsInsideTree() || IsQueuedForDeletion())
+			return;
+
+		playerManager.MarkPlayerReconnected(playerName);
+		
+		string roleText = role == "master" ? "Game Master" : "Player";
+		ui.SetInfoText($"🔄 {playerName} ({roleText}) reconnected!");
+		
+		GD.Print($"Player reconnected: {playerName} (Role: {role})");
+	}
+
+	public void OnGameMasterDisconnected(string masterName)
+	{
+		if (!IsInsideTree() || IsQueuedForDeletion())
+			return;
+
+		GD.Print($"⚠️ Game Master {masterName} disconnected - returning to hub");
+		
+		// Show message to user
+		ui.SetInfoText($"⚠️ Game Master disconnected!\nReturning to lobby...");
+		
+		// Wait a moment for user to see the message, then return to hub
+		GetTree().CreateTimer(2.0).Timeout += () =>
+		{
+			if (IsInsideTree() && !IsQueuedForDeletion())
+			{
+				// Disconnect from server
+				if (networkManager != null)
+				{
+					networkManager.Disconnect();
+				}
+				
+				// Change scene to hub
+				GetTree().ChangeSceneToFile("res://Hub.tscn");
+			}
+		};
 	}
 
 	public void OnPlayerListReceived(string playerListJson)

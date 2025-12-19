@@ -90,6 +90,17 @@ public class PlayerManager
 			player.ApplyLabelStyle(player.Label);
 		}
 	}
+
+	public void MarkPlayerReconnected(string playerName)
+	{
+		Player player = FindPlayer(playerName);
+		if (player != null)
+		{
+			player.IsConnected = true;
+			// Update the label to remove disconnection icon
+			player.ApplyLabelStyle(player.Label);
+		}
+	}
 	#endregion
 
 	#region Feedback Operations
@@ -147,7 +158,7 @@ public class PlayerManager
 
 	public int GetNonMasterPlayerCount()
 	{
-		return _players.Count(p => !p.IsMaster);
+		return _players.Count(p => !p.IsMaster && p.IsConnected);
 	}
 	#endregion
 

@@ -35,8 +35,29 @@ namespace Gauniv.GameServer.Hubs
 
                 string role = player.PlayerName == player.GameSession?.GameMasterName ? "master" : "player";
 
-                await Clients.Group($"game_{player.GameSessionId}")
-                    .SendAsync("PlayerDisconnected", player.PlayerName, role);
+                // If the game master disconnects, notify all players to return to hub
+                if (role == "master")
+                {
+                    Console.WriteLine($"👑 Game Master {player.PlayerName} disconnected - ending game session");
+                    
+                    // Send GameMasterDisconnected message to all players in the game
+                    await Clients.Group($"game_{player.GameSessionId}")
+                        .SendAsync("GameMasterDisconnected", player.PlayerName);
+                    
+                    // Optional: Mark the game session as finished
+                    if (player.GameSession != null)
+                    {
+                        player.GameSession.Status = GameSessionStatus.Finished;
+                        player.GameSession.FinishedAt = DateTime.UtcNow;
+                        await _dbContext.SaveChangesAsync();
+                    }
+                }
+                else
+                {
+                    // Regular player disconnection - just notify others
+                    await Clients.Group($"game_{player.GameSessionId}")
+                        .SendAsync("PlayerDisconnected", player.PlayerName, role);
+                }
                 
                 Console.WriteLine($"👤 Player {player.PlayerName} ({role}) disconnected from game");
             }
@@ -191,27 +212,58 @@ namespace Gauniv.GameServer.Hubs
             Console.WriteLine("Current players in the lobby:");
             foreach (var p in session.Players)
             {
-                Console.WriteLine($"- {p.PlayerName}");
+                Console.WriteLine($"- {p.PlayerName} (Connected: {p.IsConnected})");
             }
 
-            if (session.Players.Any(p => p.PlayerName == playerName))
-                throw new HubException("Player name already taken");
-
-            var player = new GamePlayer
+            // Check if player name already exists
+            var existingPlayer = session.Players.FirstOrDefault(p => p.PlayerName == playerName);
+            
+            if (existingPlayer != null)
             {
-                GameSessionId = session.Id,
-                PlayerName = playerName,
-                ConnectionId = Context.ConnectionId
-            };
+                // Player exists - check if they're disconnected
+                if (!existingPlayer.IsConnected)
+                {
+                    // Allow reconnection
+                    Console.WriteLine($"🔄 Player {playerName} is reconnecting...");
+                    existingPlayer.ConnectionId = Context.ConnectionId;
+                    existingPlayer.IsConnected = true;
+                    await _dbContext.SaveChangesAsync();
+                    
+                    await Groups.AddToGroupAsync(Context.ConnectionId, $"game_{session.Id}");
+                    
+                    // Notify all players about the reconnection
+                    await Clients.Group($"game_{session.Id}")
+                        .SendAsync("PlayerReconnected", playerName, existingPlayer.PlayerName == session.GameMasterName ? "master" : "player");
+                    
+                    Console.WriteLine($"✅ {playerName} reconnected successfully");
+                }
+                else
+                {
+                    // Player is already connected - name taken
+                    throw new HubException("Player name already taken");
+                }
+            }
+            else
+            {
+                // New player - create new entry
+                var player = new GamePlayer
+                {
+                    GameSessionId = session.Id,
+                    PlayerName = playerName,
+                    ConnectionId = Context.ConnectionId
+                };
 
-            _dbContext.GamePlayers.Add(player);
-            await _dbContext.SaveChangesAsync();
+                _dbContext.GamePlayers.Add(player);
+                await _dbContext.SaveChangesAsync();
 
-            await Groups.AddToGroupAsync(Context.ConnectionId, $"game_{session.Id}");
+                await Groups.AddToGroupAsync(Context.ConnectionId, $"game_{session.Id}");
+                
+                // Notify all players about the new player
+                await Clients.Group($"game_{session.Id}")
+                    .SendAsync("PlayerJoined", playerName, player.Id);
+            }
 
-            await Clients.Group($"game_{session.Id}")
-                .SendAsync("PlayerJoined", playerName, player.Id);
-
+            // Send updated player list to all clients
             var playerList = session.Players
                 .Select(p => new
                 {

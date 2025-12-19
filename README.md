@@ -17,7 +17,7 @@ Jeu godot
    ```csharp
    private string serverUrl = "ws://localhost:5000/gamehub";
    ```
-   - Modifier l'adresse
+   - Modifier l'adresse par l'adresse de la machine hôte
 
 
 Details sur le projet dans : - [README-details.md](README-details.md)

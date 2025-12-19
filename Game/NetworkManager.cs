@@ -50,6 +50,12 @@ public partial class NetworkManager : Control
 	public delegate void PlayerDisconnectedEventHandler(string playerName, string role);
 
 	[Signal]
+	public delegate void PlayerReconnectedEventHandler(string playerName, string role);
+
+	[Signal]
+	public delegate void GameMasterDisconnectedEventHandler(string masterName);
+
+	[Signal]
 	public delegate void PlayerSubmittedEventHandler(string playerName, bool isCorrect, int pointsEarned, int totalScore);
 
 	[Signal]
@@ -75,6 +81,8 @@ public partial class NetworkManager : Control
 			["GameEnded"] = HandleGameEnded,
 			["PlayerJoined"] = HandlePlayerJoined,
 			["PlayerDisconnected"] = HandlePlayerDisconnected,
+			["PlayerReconnected"] = HandlePlayerReconnected,
+			["GameMasterDisconnected"] = HandleGameMasterDisconnected,
 			["PlayerSubmitted"] = HandlePlayerSubmitted,
 			["PlayerListReceived"] = HandlePlayerListReceived
 		};
@@ -260,6 +268,25 @@ public partial class NetworkManager : Control
 			string playerName = arguments[0].GetString();
 			string role = arguments[1].GetString();
 			EmitSignal(SignalName.PlayerDisconnected, playerName, role);
+		}
+	}
+
+	private void HandlePlayerReconnected(JsonElement arguments)
+	{
+		if (arguments.GetArrayLength() > 1)
+		{
+			string playerName = arguments[0].GetString();
+			string role = arguments[1].GetString();
+			EmitSignal(SignalName.PlayerReconnected, playerName, role);
+		}
+	}
+
+	private void HandleGameMasterDisconnected(JsonElement arguments)
+	{
+		if (arguments.GetArrayLength() > 0)
+		{
+			string masterName = arguments[0].GetString();
+			EmitSignal(SignalName.GameMasterDisconnected, masterName);
 		}
 	}
 
@@ -467,7 +494,13 @@ public partial class NetworkManager : Control
 		{
 			webSocketPeer.Close();
 			isConnected = false;
+			
+			// Clear game state
+			gameId = null;
+			playerRole = null;
+			
 			EmitSignal(SignalName.Disconnected);
+			GD.Print("🔌 Disconnected from server and cleared game state");
 		}
 	}
 
