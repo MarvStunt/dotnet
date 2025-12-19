@@ -25,19 +25,21 @@ public partial class ResultPanel : Panel
 		backToHubButton.Pressed += OnBackToHubPressed;
 
 		// Display the leaderboard if data is available
-		if (!string.IsNullOrEmpty(ResultPanelData.LeaderboardJson))
+		if (ResultPanelData.Instance != null && !string.IsNullOrEmpty(ResultPanelData.Instance.LeaderboardJson))
 		{
-			GD.Print($"ResultPanel: Displaying leaderboard: {ResultPanelData.LeaderboardJson}");
 			var json = new Json();
-			json.Parse(ResultPanelData.LeaderboardJson);
+			json.Parse(ResultPanelData.Instance.LeaderboardJson);
 			var leaderboard = (Godot.Collections.Array)json.Data;
 			ShowLeaderboard(leaderboard);
+			
+			// Clear data after use
+			ResultPanelData.Instance.Clear();
 		}
 		else
 		{
-			GD.Print("ResultPanel: No leaderboard data - returning to Hub");
 			// No data available, return to Hub instead of displaying error
-			GetTree().ChangeSceneToFile("res://Hub.tscn");
+			// Use CallDeferred to avoid changing scene during _Ready
+			GetTree().CallDeferred("change_scene_to_file", "res://Hub.tscn");
 		}
 	}
 
@@ -78,12 +80,11 @@ public partial class ResultPanel : Panel
 			var playerData = (Godot.Collections.Dictionary)entry;
 			string playerName = playerData["playerName"].AsString();
 			int score = (int)playerData["score"].AsInt64();
-			string role = playerData.ContainsKey("role") ? playerData["role"].AsString() : "player";
+			string role = playerData.ContainsKey("role") ? playerData["role"].AsString() : Roles.Player;
 
 			// Skip master players in the leaderboard
-			if (role == "master")
+			if (Roles.IsMaster(role))
 			{
-				GD.Print($"Skipping master player: {playerName}");
 				continue;
 			}
 
@@ -136,7 +137,6 @@ public partial class ResultPanel : Panel
 
 	private void OnBackToHubPressed()
 	{
-		GD.Print("Back to hub pressed");
 		// Return to Hub scene
 		GetTree().ChangeSceneToFile("res://Hub.tscn");
 	}

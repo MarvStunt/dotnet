@@ -33,7 +33,5 @@ public partial class ColorButton : Button
 		styleBoxDisabled.BgColor = ButtonColor.Darkened(0.4f);
 		styleBoxDisabled.SetCornerRadiusAll(8);
 		AddThemeStyleboxOverride("disabled", styleBoxDisabled);
-
-		GD.Print($"ColorButton {ColorIndex} ready with color {ButtonColor}");
 	}
 }

@@ -1,29 +1,34 @@
 using Godot;
 using System;
 
-// Simple Player model to centralize player-related data and label handling
+/// <summary>
+/// Simple Player model to centralize player-related data and label handling
+/// </summary>
 public class Player
 {
     public string Name { get; set; }
-    public string Role { get; set; } = "player";
+    public string Role { get; set; } = Roles.Player;
     public int Score { get; set; } = 0;
     public Label Label { get; set; }
 
-    public Player(string name, string role = "player", int score = 0)
+    public Player(string name, string role = null, int score = 0)
     {
         Name = name;
-        Role = role;
+        Role = role ?? Roles.Player;
         Score = score;
     }
 
+    public bool IsMaster => Role == Roles.Master;
+    public bool IsPlayer => Role == Roles.Player;
+
     public string DisplayName()
     {
-        return Role == "master" ? $"👑 {Name}" : $"🎮 {Name}";
+        return IsMaster ? $"👑 {Name}" : $"🎮 {Name}";
     }
 
     public Color TextColor()
     {
-        return Role == "master" ? new Color(1, 0.84f, 0, 1) : new Color(0.2f, 1, 0.4f, 1);
+        return IsMaster ? new Color(1, 0.84f, 0, 1) : new Color(0.2f, 1, 0.4f, 1);
     }
 
     // Apply standard styling to a provided Label and keep a reference

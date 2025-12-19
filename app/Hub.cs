@@ -138,7 +138,7 @@ public partial class Hub : Control
 			currentOperation = "create";
 
 			networkManager.PlayerName = playerName;
-			networkManager.PlayerRole = "master";
+			networkManager.PlayerRole = Roles.Master;
 			networkManager.CreateGame(playerName);
 
 			// Les signaux OnGameCreated ou OnOperationFailed géreront la suite
@@ -195,7 +195,7 @@ public partial class Hub : Control
 			currentOperation = "join";
 
 			networkManager.PlayerName = playerName;
-			networkManager.PlayerRole = "player";
+			networkManager.PlayerRole = Roles.Player;
 			networkManager.JoinGame(gameId, playerName);
 
 			// Les signaux OnGameCreated ou OnOperationFailed géreront la suite

@@ -1,10 +1,9 @@
-[gd_scene load_steps=6 format=3 uid="uid://b28hkiq6cwsxt"]
+[gd_scene load_steps=5 format=3 uid="uid://b28hkiq6cwsxt"]
 
-[ext_resource type="Script" uid="uid://coru8v2vhejjt" path="res://Main.cs" id="1_1bvp3"]
 [ext_resource type="Script" uid="uid://br6u4mdl0p8er" path="res://NetworkManager.cs" id="1_h2yge"]
 [ext_resource type="PackedScene" uid="uid://cxt0hnbwuywl" path="res://Hub.tscn" id="3_cm0pq"]
 [ext_resource type="PackedScene" uid="uid://c5et0hhwdvcf3" path="res://Game.tscn" id="4_cm0pq"]
-[ext_resource type="PackedScene" path="res://ResultPanel.tscn" id="5_fos0i"]
+[ext_resource type="PackedScene" uid="uid://d3qwxm6xcta" path="res://ResultPanel.tscn" id="5_fos0i"]
 
 [node name="Main" type="Control"]
 custom_minimum_size = Vector2(1150, 650)
@@ -12,7 +11,6 @@ layout_mode = 3
 anchors_preset = 0
 offset_right = 40.0
 offset_bottom = 40.0
-script = ExtResource("1_1bvp3")
 
 [node name="NetworkManager" type="Control" parent="."]
 visible = false

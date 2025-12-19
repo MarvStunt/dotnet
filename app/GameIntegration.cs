@@ -52,7 +52,6 @@ public partial class GameIntegration : Node2D
             ConnectNetworkSignals();
         }
 
-        GD.Print("Game Integration initialized");
     }
 
     private void ConnectNetworkSignals()
@@ -73,7 +72,6 @@ public partial class GameIntegration : Node2D
             Callable.From<string>(OnGameEnded)
         );
 
-        GD.Print("Network signals connected");
     }
 
     /// <summary>
@@ -81,7 +79,6 @@ public partial class GameIntegration : Node2D
     /// </summary>
     private void OnShowPattern(int[] pattern, int roundNumber)
     {
-        GD.Print($"Integration: Pattern received - Round {roundNumber}: {string.Join(",", pattern)}");
         gameLogic.ReceiveSequence(pattern);
     }
 
@@ -90,7 +87,6 @@ public partial class GameIntegration : Node2D
     /// </summary>
     private void OnPlayerSubmitted(string playerName, bool isCorrect, int pointsEarned, int totalScore)
     {
-        GD.Print($"Integration: {playerName} submitted - {isCorrect} (+{pointsEarned}pts, total: {totalScore})");
         gameLogic.OnPlayerSubmitted(playerName, isCorrect, pointsEarned, totalScore);
     }
 
@@ -99,7 +95,6 @@ public partial class GameIntegration : Node2D
     /// </summary>
     private void OnGameEnded(string leaderboardJson)
     {
-        GD.Print($"Integration: Game ended - Leaderboard: {leaderboardJson}");
         gameLogic.OnGameEnded(leaderboardJson);
     }
 
@@ -110,18 +105,9 @@ public partial class GameIntegration : Node2D
     {
         if (networkManager == null)
         {
-            GD.Print("=== GAME INFO ===");
-            GD.Print("Mode: LOCAL");
             return;
         }
 
-        GD.Print("=== GAME INFO ===");
-        GD.Print($"Mode: NETWORK");
-        GD.Print($"Connected: {networkManager.IsConnected}");
-        GD.Print($"GameID: {networkManager.GameId}");
-        GD.Print($"PlayerID: {networkManager.PlayerId}");
-        GD.Print($"Role: {networkManager.PlayerRole}");
-        GD.Print($"==================");
     }
 
     // Call this from debugger: PrintGameInfo()
