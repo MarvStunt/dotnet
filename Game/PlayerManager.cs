@@ -79,6 +79,17 @@ public class PlayerManager
 	{
 		return _players.Any(p => p.MatchesName(playerName));
 	}
+
+	public void MarkPlayerDisconnected(string playerName)
+	{
+		Player player = FindPlayer(playerName);
+		if (player != null)
+		{
+			player.IsConnected = false;
+			// Update the label to show disconnection icon
+			player.ApplyLabelStyle(player.Label);
+		}
+	}
 	#endregion
 
 	#region Feedback Operations

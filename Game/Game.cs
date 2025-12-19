@@ -51,6 +51,7 @@ public partial class Game : Control
 			networkManager.PlayerSubmitted -= OnPlayerSubmitted;
 			networkManager.GameEnded -= OnGameEnded;
 			networkManager.PlayerJoined -= OnPlayerJoined;
+			networkManager.PlayerDisconnected -= OnPlayerDisconnected;
 			networkManager.PlayerListReceived -= OnPlayerListReceived;
 		}
 	}
@@ -119,6 +120,7 @@ public partial class Game : Control
 		networkManager.PlayerSubmitted += OnPlayerSubmitted;
 		networkManager.GameEnded += OnGameEnded;
 		networkManager.PlayerJoined += OnPlayerJoined;
+		networkManager.PlayerDisconnected += OnPlayerDisconnected;
 		networkManager.PlayerListReceived += OnPlayerListReceived;
 
 	}
@@ -449,6 +451,19 @@ public partial class Game : Control
 		{
 			ui.SetStartGameDisabled(false);
 		}
+	}
+
+	public void OnPlayerDisconnected(string playerName, string role)
+	{
+		if (!IsInsideTree() || IsQueuedForDeletion())
+			return;
+
+		playerManager.MarkPlayerDisconnected(playerName);
+		
+		string roleText = role == "master" ? "Game Master" : "Player";
+		ui.SetInfoText($"🔌 {playerName} ({roleText}) disconnected");
+		
+		GD.Print($"Player disconnected: {playerName} (Role: {role})");
 	}
 
 	public void OnPlayerListReceived(string playerListJson)

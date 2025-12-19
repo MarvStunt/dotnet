@@ -47,7 +47,7 @@ public partial class NetworkManager : Control
 	public delegate void PlayerJoinedEventHandler(string playerName);
 
 	[Signal]
-	public delegate void PlayerDisconnectedEventHandler(string playerName);
+	public delegate void PlayerDisconnectedEventHandler(string playerName, string role);
 
 	[Signal]
 	public delegate void PlayerSubmittedEventHandler(string playerName, bool isCorrect, int pointsEarned, int totalScore);
@@ -255,10 +255,11 @@ public partial class NetworkManager : Control
 
 	private void HandlePlayerDisconnected(JsonElement arguments)
 	{
-		if (arguments.GetArrayLength() > 0)
+		if (arguments.GetArrayLength() > 1)
 		{
 			string playerName = arguments[0].GetString();
-			EmitSignal(SignalName.PlayerDisconnected, playerName);
+			string role = arguments[1].GetString();
+			EmitSignal(SignalName.PlayerDisconnected, playerName, role);
 		}
 	}
 

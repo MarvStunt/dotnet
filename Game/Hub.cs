@@ -84,6 +84,9 @@ public partial class Hub : Control
 
 		if (statusLabel != null && !statusLabel.IsQueuedForDeletion())
 			statusLabel.Text = $"✅ Game created! ID: {gameCode}";
+			// switch to gamescene
+			GetTree().ChangeSceneToFile("res://Game.tscn");
+			
 		
 		isWaitingForResponse = false;
 
@@ -104,6 +107,7 @@ public partial class Hub : Control
 		{
 			if (statusLabel != null && !statusLabel.IsQueuedForDeletion())
 				statusLabel.Text = "✅ Joined game successfully!";
+				GetTree().ChangeSceneToFile("res://Game.tscn");
 		}
 		else
 		{

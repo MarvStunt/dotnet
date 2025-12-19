@@ -7,12 +7,14 @@ public class Player
     public string Role { get; set; } = Roles.Player;
     public int Score { get; set; } = 0;
     public Label Label { get; set; }
+    public bool IsConnected { get; set; } = true;
 
     public Player(string name, string role = null, int score = 0)
     {
         Name = name;
         Role = role ?? Roles.Player;
         Score = score;
+        IsConnected = true;
     }
 
     public bool IsMaster => Role == Roles.Master;
@@ -20,7 +22,9 @@ public class Player
 
     public string DisplayName()
     {
-        return IsMaster ? $"👑 {Name}" : $"🎮 {Name}";
+        string roleIcon = IsMaster ? "👑" : "🎮";
+        string disconnectIcon = IsConnected ? "" : " 🔌";
+        return $"{roleIcon} {Name}{disconnectIcon}";
     }
 
     public Color TextColor()
