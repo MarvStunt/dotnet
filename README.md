@@ -20,4 +20,6 @@ Jeu godot
    - Modifier l'adresse par l'adresse de la machine hôte
 
 
+Le jeu est disponible en téléchargement sur la page web sous "Memory Game" des lors que les fichiers se trouvent dans le dossier `executable` a la racine du projet.
+
 Details sur le projet dans : - [README-details.md](README-details.md)
