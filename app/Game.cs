@@ -389,12 +389,6 @@ public partial class Game : Control
 		GetTree().ChangeSceneToFile("res://Hub.tscn");
 	}
 
-	public void OnRetryPressed()
-	{
-		// Return to Game scene to play again
-		GetTree().ChangeSceneToFile("res://Game.tscn");
-	}
-
 	public void OnHubPressed()
 	{
 		if (networkManager != null)

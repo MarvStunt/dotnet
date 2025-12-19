@@ -57,15 +57,33 @@ public partial class Hub : Control
 		statusLabel.Text = "Welcome to Memory Game";
 	}
 
+	public override void _ExitTree()
+	{
+		// Disconnect signals to prevent errors when Hub is freed but NetworkManager persists
+		if (networkManager != null)
+		{
+			networkManager.OperationFailed -= OnOperationFailed;
+			networkManager.GameCreated -= OnGameCreated;
+			networkManager.PlayerJoinedGame -= OnPlayerJoinedGame;
+		}
+	}
+
 	private void OnOperationFailed(string error, string invocationId)
 	{
-		GD.PrintErr($"Operation failed: {error}");
+		// Check if Hub is still valid (not disposed/freed)
+		if (!IsInsideTree() || statusLabel == null || IsQueuedForDeletion())
+			return;
+		
 		statusLabel.Text = $"❌ Error: {error}";
 
 		// Réactiver les boutons
-		createGameButton.Disabled = false;
-		joinGameButton.Disabled = false;
+		if (createGameButton != null && !createGameButton.IsQueuedForDeletion())
+			createGameButton.Disabled = false;
+		if (joinGameButton != null && !joinGameButton.IsQueuedForDeletion())
+			joinGameButton.Disabled = false;
+		
 		isWaitingForResponse = false;
+		currentOperation = "";
 	}
 
 	private void OnGameCreated(string gameCode)
@@ -73,7 +91,13 @@ public partial class Hub : Control
 		if (!isWaitingForResponse || currentOperation != "create")
 			return;
 
-		statusLabel.Text = $"✅ Game created! ID: {gameCode}";
+		// Check if Hub is still valid
+		if (!IsInsideTree() || IsQueuedForDeletion())
+			return;
+
+		if (statusLabel != null && !statusLabel.IsQueuedForDeletion())
+			statusLabel.Text = $"✅ Game created! ID: {gameCode}";
+		
 		isWaitingForResponse = false;
 
 		// Changer de scène seulement si succès
@@ -82,22 +106,30 @@ public partial class Hub : Control
 
 	private void OnPlayerJoinedGame(bool success)
 	{
+		// Only process if we're actually waiting for a join response
 		if (!isWaitingForResponse || currentOperation != "join")
 			return;
 
+		// Check if Hub is still valid
+		if (!IsInsideTree() || IsQueuedForDeletion())
+			return;
+
+		isWaitingForResponse = false;
+		currentOperation = "";
+
 		if (success)
 		{
-			statusLabel.Text = "✅ Joined game successfully!";
-			isWaitingForResponse = false;
-
+			if (statusLabel != null && !statusLabel.IsQueuedForDeletion())
+				statusLabel.Text = "✅ Joined game successfully!";
 			// Changer de scène seulement si succès
 			GetTree().CallDeferred("change_scene_to_file", "res://Game.tscn");
 		}
 		else
 		{
-			statusLabel.Text = "❌ Failed to join game";
-			joinGameButton.Disabled = false;
-			isWaitingForResponse = false;
+			if (statusLabel != null && !statusLabel.IsQueuedForDeletion())
+				statusLabel.Text = "❌ Failed to join game";
+			if (joinGameButton != null && !joinGameButton.IsQueuedForDeletion())
+				joinGameButton.Disabled = false;
 		}
 	}
 

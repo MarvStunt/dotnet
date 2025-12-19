@@ -200,7 +200,7 @@ public partial class NetworkManager : Control
 				}
 				catch (Exception ex)
 				{
-					GD.PrintErr($"Error processing message: {ex.Message}");
+					GD.PrintErr($"[NetworkManager] Error processing message: {ex.Message}");
 				}
 			}
 		}
@@ -220,7 +220,6 @@ public partial class NetworkManager : Control
 		}
 		else
 		{
-			GD.Print($"[NetworkManager] Unknown invocation target: {target}");
 		}
 	}
 
@@ -307,7 +306,9 @@ public partial class NetworkManager : Control
 	private void HandleCompletion(Dictionary<string, JsonElement> message)
 	{
 		if (!message.ContainsKey("invocationId"))
+		{
 			return;
+		}
 
 		string invocationId = message["invocationId"].GetString();
 
@@ -315,6 +316,7 @@ public partial class NetworkManager : Control
 		if (message.ContainsKey("error"))
 		{
 			string error = message["error"].GetString();
+			GD.PrintErr($"[NetworkManager] Server error: {error}");
 			EmitSignal(SignalName.OperationFailed, error, invocationId);
 			return; // Ne pas continuer si erreur
 		}
@@ -340,9 +342,18 @@ public partial class NetworkManager : Control
 				}
 				else
 				{
-					EmitSignal(SignalName.OperationFailed, "Operation returned false", invocationId);
+					// When JoinGame returns false, it's likely due to duplicate name or game not found
+					EmitSignal(SignalName.PlayerJoinedGame, false);
+					EmitSignal(SignalName.OperationFailed, "Failed to join game. The player name might already exist or the game code is invalid.", invocationId);
 				}
 			}
+			else
+			{
+				GD.PrintErr($"[NetworkManager] Unexpected result type: {result.ValueKind}");
+			}
+		}
+		else
+		{
 		}
 	}
 
