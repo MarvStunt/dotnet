@@ -97,7 +97,6 @@ public class PlayerManager
 		if (player != null)
 		{
 			player.IsConnected = true;
-			// Update the label to remove disconnection icon
 			player.ApplyLabelStyle(player.Label);
 		}
 	}

@@ -475,7 +475,10 @@ public partial class Game : Control
 			return;
 
 		playerManager.MarkPlayerReconnected(playerName);
-		
+		if (IsMaster) {
+			playerResponseCount++;
+		}
+	
 		string roleText = role == "master" ? "Game Master" : "Player";
 		ui.SetInfoText($"🔄 {playerName} ({roleText}) reconnected!");
 		

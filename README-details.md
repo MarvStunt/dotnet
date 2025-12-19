@@ -60,10 +60,14 @@ Avant de lancer le jeu, modifier l'adresse du serveur :
 
 si on cree une partie, on devient le MJ (Maître du Jeu), si on rejoint, on est joueur.
 
-3. **Gameplay :**
+2. **Gameplay :**
    - Le MJ (Maître du Jeu) lance le jeu, sélectionne une ou plusieurs cases et decide de changer de round ou finir la partie
    - Les joueurs doivent cliquer sur la ou les cases sélectionnées dans l'ordre
    - Le classement final est affiché à la fin de la partie
+
+3. **Deconnexion**
+   - En cas de déconnexion, le joueur peut se reconnecter en utilisant le même nom dans la même partie
+   - Si le MJ se déconnecte, la game est terminée pour tous les joueurs
 
 ---
 

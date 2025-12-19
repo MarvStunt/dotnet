@@ -35,16 +35,13 @@ namespace Gauniv.GameServer.Hubs
 
                 string role = player.PlayerName == player.GameSession?.GameMasterName ? "master" : "player";
 
-                // If the game master disconnects, notify all players to return to hub
                 if (role == "master")
                 {
                     Console.WriteLine($"👑 Game Master {player.PlayerName} disconnected - ending game session");
                     
-                    // Send GameMasterDisconnected message to all players in the game
                     await Clients.Group($"game_{player.GameSessionId}")
                         .SendAsync("GameMasterDisconnected", player.PlayerName);
                     
-                    // Optional: Mark the game session as finished
                     if (player.GameSession != null)
                     {
                         player.GameSession.Status = GameSessionStatus.Finished;
@@ -54,7 +51,6 @@ namespace Gauniv.GameServer.Hubs
                 }
                 else
                 {
-                    // Regular player disconnection - just notify others
                     await Clients.Group($"game_{player.GameSessionId}")
                         .SendAsync("PlayerDisconnected", player.PlayerName, role);
                 }
@@ -206,24 +202,18 @@ namespace Gauniv.GameServer.Hubs
             if (session == null)
                 throw new HubException("Game not found");
 
-            if (session.Status != GameSessionStatus.Waiting)
-                throw new HubException("Game already started");
-
             Console.WriteLine("Current players in the lobby:");
             foreach (var p in session.Players)
             {
                 Console.WriteLine($"- {p.PlayerName} (Connected: {p.IsConnected})");
             }
 
-            // Check if player name already exists
             var existingPlayer = session.Players.FirstOrDefault(p => p.PlayerName == playerName);
             
             if (existingPlayer != null)
             {
-                // Player exists - check if they're disconnected
                 if (!existingPlayer.IsConnected)
                 {
-                    // Allow reconnection
                     Console.WriteLine($"🔄 Player {playerName} is reconnecting...");
                     existingPlayer.ConnectionId = Context.ConnectionId;
                     existingPlayer.IsConnected = true;
@@ -231,7 +221,6 @@ namespace Gauniv.GameServer.Hubs
                     
                     await Groups.AddToGroupAsync(Context.ConnectionId, $"game_{session.Id}");
                     
-                    // Notify all players about the reconnection
                     await Clients.Group($"game_{session.Id}")
                         .SendAsync("PlayerReconnected", playerName, existingPlayer.PlayerName == session.GameMasterName ? "master" : "player");
                     
@@ -239,13 +228,14 @@ namespace Gauniv.GameServer.Hubs
                 }
                 else
                 {
-                    // Player is already connected - name taken
                     throw new HubException("Player name already taken");
                 }
             }
             else
             {
-                // New player - create new entry
+                if (session.Status != GameSessionStatus.Waiting)
+                    throw new HubException("Game already started");
+                
                 var player = new GamePlayer
                 {
                     GameSessionId = session.Id,
