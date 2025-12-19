@@ -653,7 +653,6 @@ body {
     border-bottom: 2px solid rgba(76, 110, 245, 0.3);
     width: 100%;
     margin-left: calc(-50vw + 50%);
-    width: 100vw;
 }
 
 .hero-title {
@@ -1507,4 +1506,21 @@ body {
 .row a:hover {
     color: #5a7aff;
     text-decoration: underline;
+}
+
+h3 {
+    color: #ffffff !important;
+    text-align: center;
+    margin-bottom: 30px;
+    font-weight: 600;
+}
+
+.profile-form {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+#editGameForm .custom-form-label {
+    color: black;
+    font-weight: 500;
 }

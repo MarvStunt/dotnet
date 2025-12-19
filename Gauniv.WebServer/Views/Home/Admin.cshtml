@@ -44,7 +44,6 @@
                     <div>
                         <p class="stat-card-modern-title">Total Revenue</p>
                         <div class="stat-card-modern-value" id="totalRevenueValue">$0</div>
-                        <p class="stat-card-modern-change" id="revenueChange">Loading...</p>
                     </div>
                     <div class="stat-card-modern-icon">💰</div>
                 </div>
@@ -313,11 +312,11 @@
                 <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 15px; align-items: end;">
                     <div class="admin-form-group" style="margin-bottom: 0;">
                         <label for="categoryName">Category Name</label>
-                        <input type="text" class="form-control" id="categoryName" placeholder="Enter category name">
+                        <input type="text" class="form-control" id="categoryName" >
                     </div>
                     <div class="admin-form-group" style="margin-bottom: 0;">
                         <label for="categoryDescription">Description</label>
-                        <input type="text" class="form-control" id="categoryDescription" placeholder="Enter description">
+                        <input type="text" class="form-control" id="categoryDescription" >
                     </div>
                     <button class="btn btn-admin-success" onclick="addCategory()">
                         ➕ Add Category
@@ -388,23 +387,23 @@
             <div class="modal-body">
                 <form id="addGameForm">
                     <div class="mb-3">
-                        <label class="form-label">Nom du Jeu</label>
+                        <label class="custom-form-label">Nom du Jeu</label>
                         <input type="text" class="form-control" id="gameName" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Description</label>
+                        <label class="custom-form-label">Description</label>
                         <textarea class="form-control" id="gameDescription" rows="3" required></textarea>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Prix (€)</label>
+                        <label class="custom-form-label">Prix (€)</label>
                         <input type="number" class="form-control" id="gamePrice" step="0.01" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Fichier du Jeu</label>
+                        <label class="custom-form-label">Fichier du Jeu</label>
                         <input type="file" class="form-control" id="gamePayload" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Catégories</label>
+                        <label class="custom-form-label">Catégories</label>
                         <select class="form-select" id="gameCategories" multiple>
                             @foreach (var category in categories)
                             {
@@ -435,23 +434,23 @@
                 <form id="editGameForm">
                     <input type="hidden" id="editGameId">
                     <div class="mb-3">
-                        <label class="form-label">Game Name</label>
+                        <label class="custom-form-label">Game Name</label>
                         <input type="text" class="form-control" id="editGameName" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Description</label>
+                        <label class="custom-form-label">Description</label>
                         <textarea class="form-control" id="editGameDescription" rows="3" required></textarea>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Price (€)</label>
+                        <label class="custom-form-label">Price (€)</label>
                         <input type="number" class="form-control" id="editGamePrice" step="0.01" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Game File (Optional - leave empty to keep current)</label>
+                        <label class="custom-form-label">Game File (Optional - leave empty to keep current)</label>
                         <input type="file" class="form-control" id="editGamePayload">
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Categories</label>
+                        <label class="custom-form-label">Categories</label>
                         <select class="form-select" id="editGameCategories" multiple>
                             @foreach (var category in categories)
                             {
@@ -482,11 +481,11 @@
                 <form id="editCategoryForm">
                     <input type="hidden" id="editCategoryId">
                     <div class="mb-3">
-                        <label class="form-label">Category Name</label>
+                        <label class="custom-form-label">Category Name</label>
                         <input type="text" class="form-control" id="editCategoryName" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Description</label>
+                        <label class="custom-form-label">Description</label>
                         <input type="text" class="form-control" id="editCategoryDescription" required>
                     </div>
                 </form>
