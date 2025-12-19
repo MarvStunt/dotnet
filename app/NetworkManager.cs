@@ -4,25 +4,18 @@ using System.Collections.Generic;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-/// <summary>
-/// Manages all network communication with the game server
-/// </summary>
 public partial class NetworkManager : Control
 {
 	private WebSocketPeer webSocketPeer;
-	// TODO: Adapter cette URL selon votre serveur
-	// Exemples: "ws://localhost:8080", "ws://votre-serveur.com:8080"
 	private string serverUrl = "ws://localhost:5000/gamehub";
 	private bool isConnected = false;
 	private string playerId;
 	private string gameId;
-	private string playerRole; // Uses Roles.Master or Roles.Player constants
+	private string playerRole;
 	private string playerName;
 
-	// Dictionary-based handlers for server invocations
 	private Dictionary<string, Action<JsonElement>> _invocationHandlers;
 
-	// Signaux
 	[Signal]
 	public delegate void ConnectedEventHandler();
 
@@ -72,9 +65,6 @@ public partial class NetworkManager : Control
 		InitializeInvocationHandlers();
 	}
 
-	/// <summary>
-	/// Initialize the dictionary of handlers for server invocations
-	/// </summary>
 	private void InitializeInvocationHandlers()
 	{
 		_invocationHandlers = new Dictionary<string, Action<JsonElement>>
@@ -110,9 +100,6 @@ public partial class NetworkManager : Control
 		}
 	}
 
-	/// <summary>
-	/// Connect to the server
-	/// </summary>
 	public async Task<bool> ConnectToServer(string url = null)
 	{
 		if (url != null)
@@ -132,7 +119,6 @@ public partial class NetworkManager : Control
 		}
 
 
-		// Wait longer for connection to establish
 		for (int i = 0; i < 20; i++)
 		{
 			await Task.Delay(100);
@@ -142,7 +128,6 @@ public partial class NetworkManager : Control
 
 			if (state == (int)WebSocketPeer.State.Open)
 			{
-				// Envoyer le handshake SignalR
 				string handshake = "{\"protocol\":\"json\",\"version\":1}\u001E";
 				webSocketPeer.SendText(handshake);
 
@@ -156,9 +141,6 @@ public partial class NetworkManager : Control
 		return false;
 	}
 
-	/// <summary>
-	/// Handle incoming messages
-	/// </summary>
 	private void HandleMessages()
 	{
 		while (webSocketPeer.GetAvailablePacketCount() > 0)
@@ -184,15 +166,15 @@ public partial class NetworkManager : Control
 
 					switch (messageType)
 					{
-						case 1: // Invocation (from server to client)
+						case 1:
 							HandleInvocation(message);
 							break;
-						case 2: // StreamItem
+						case 2:
 							break;
-						case 3: // Completion (response to our invocations)
+						case 3:
 							HandleCompletion(message);
 							break;
-						case 6: // Ping
+						case 6:
 							break;
 						default:
 							break;
@@ -312,20 +294,18 @@ public partial class NetworkManager : Control
 
 		string invocationId = message["invocationId"].GetString();
 
-		// Traiter les erreurs en premier
 		if (message.ContainsKey("error"))
 		{
 			string error = message["error"].GetString();
 			GD.PrintErr($"[NetworkManager] Server error: {error}");
 			EmitSignal(SignalName.OperationFailed, error, invocationId);
-			return; // Ne pas continuer si erreur
+			return;
 		}
 
 		if (message.ContainsKey("result"))
 		{
 			var result = message["result"];
 
-			// Si c'est une réponse à CreateGame
 			if (result.ValueKind == JsonValueKind.String)
 			{
 				string gameCode = result.GetString();
@@ -337,12 +317,10 @@ public partial class NetworkManager : Control
 				bool success = result.GetBoolean();
 				if (success)
 				{
-					// C'est probablement une réponse à JoinGame
 					EmitSignal(SignalName.PlayerJoinedGame, true);
 				}
 				else
 				{
-					// When JoinGame returns false, it's likely due to duplicate name or game not found
 					EmitSignal(SignalName.PlayerJoinedGame, false);
 					EmitSignal(SignalName.OperationFailed, "Failed to join game. The player name might already exist or the game code is invalid.", invocationId);
 				}
@@ -357,9 +335,9 @@ public partial class NetworkManager : Control
 	{
 		var message = new
 		{
-			type = 1, // Invocation message type
+			type = 1,
 			target = "CreateGame",
-			arguments = new object[] { playerName, 4 }, // gameMasterName, gridSize
+			arguments = new object[] { playerName, 4 },
 			invocationId = Guid.NewGuid().ToString()
 		};
 
@@ -367,9 +345,6 @@ public partial class NetworkManager : Control
 		SendMessage(message);
 	}
 
-	/// <summary>
-	/// Join an existing game
-	/// </summary>
 	public void JoinGame(string gameCode, string playerName)
 	{
 		var message = new
@@ -384,9 +359,6 @@ public partial class NetworkManager : Control
 		SendMessage(message);
 	}
 
-	/// <summary>
-	/// Start the game (Game Master only)
-	/// </summary>
 	public void StartGame()
 	{
 		var message = new
@@ -399,9 +371,6 @@ public partial class NetworkManager : Control
 		SendMessage(message);
 	}
 
-	/// <summary>
-	/// Start round with a specific sequence (Game Master only)
-	/// </summary>
 	public void StartRound(List<int> sequence)
 	{
 		var sequenceJson = JsonSerializer.Serialize(sequence);
@@ -415,9 +384,6 @@ public partial class NetworkManager : Control
 		SendMessage(message);
 	}
 
-	/// <summary>
-	/// Next round (Game Master only)
-	/// </summary>
 	public void NextRound()
 	{
 		var message = new
@@ -430,9 +396,6 @@ public partial class NetworkManager : Control
 		SendMessage(message);
 	}
 
-	/// <summary>
-	/// Stop the game (Game Master only)
-	/// </summary>
 	public void StopGame()
 	{
 		var message = new
@@ -445,9 +408,6 @@ public partial class NetworkManager : Control
 		SendMessage(message);
 	}
 
-	/// <summary>
-	/// Player submits their answer
-	/// </summary>
 	public void SubmitAttempt(int[] attempt, long reactionTimeMs)
 	{
 		var attemptList = new List<int>(attempt);
@@ -462,9 +422,6 @@ public partial class NetworkManager : Control
 		SendMessage(message);
 	}
 
-	/// <summary>
-	/// Get the current leaderboard
-	/// </summary>
 	public void GetLeaderboard()
 	{
 		var message = new
@@ -478,9 +435,6 @@ public partial class NetworkManager : Control
 		SendMessage(message);
 	}
 
-	/// <summary>
-	/// Get the current player list with roles
-	/// </summary>
 	public void GetPlayerList()
 	{
 		var message = new
@@ -494,9 +448,6 @@ public partial class NetworkManager : Control
 		SendMessage(message);
 	}
 
-	/// <summary>
-	/// Generic message sender
-	/// </summary>
 	private void SendMessage(object data)
 	{
 		if (!isConnected || webSocketPeer == null)
@@ -509,9 +460,6 @@ public partial class NetworkManager : Control
 		webSocketPeer.SendText(signalRMessage);
 	}
 
-	/// <summary>
-	/// Disconnect from server
-	/// </summary>
 	public void Disconnect()
 	{
 		if (webSocketPeer != null)

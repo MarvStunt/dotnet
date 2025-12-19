@@ -1,9 +1,5 @@
 using Godot;
 
-/// <summary>
-/// Centralized constants for all UI node paths in the Game scene.
-/// This makes it easy to update paths if the scene structure changes.
-/// </summary>
 public static class UINodePaths
 {
 	#region Main Sections

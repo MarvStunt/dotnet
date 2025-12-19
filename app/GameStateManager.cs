@@ -1,47 +1,30 @@
 using Godot;
 using System;
 
-/// <summary>
-/// Enums for game state management
-/// </summary>
 public enum GameState
 {
-	Waiting,           // Waiting for game to start
-	BuildingSequence,  // Master is building sequence
-	ShowingPattern,    // Pattern is being displayed
-	PlayerTurn,        // Player can input their answer
-	Validating,        // Waiting for server validation
-	RoundComplete,     // Round is complete, waiting for next
-	GameEnded          // Game has ended
+	Waiting,
+	BuildingSequence,
+	ShowingPattern,
+	PlayerTurn,
+	Validating,
+	RoundComplete,
+	GameEnded
 }
 
-/// <summary>
-/// String constants for player roles (used for network communication)
-/// </summary>
 public static class Roles
 {
 	public const string None = "";
 	public const string Master = "master";
 	public const string Player = "player";
-	
-	/// <summary>
-	/// Check if a role string is the master role
-	/// </summary>
+
 	public static bool IsMaster(string role) => role == Master;
-	
-	/// <summary>
-	/// Check if a role string is the player role
-	/// </summary>
+
 	public static bool IsPlayer(string role) => role == Player;
 }
 
-/// <summary>
-/// Manages the game state and transitions.
-/// Singleton instance accessed via GameStateManager.Instance
-/// </summary>
 public partial class GameStateManager : Node
 {
-	// Singleton instance
 	public static GameStateManager Instance { get; private set; }
 
 	private GameState _currentState = GameState.Waiting;
@@ -72,8 +55,6 @@ public partial class GameStateManager : Node
 			Instance = null;
 	}
 
-	#region Properties
-
 	public GameState CurrentState => _currentState;
 	public string PlayerRole => _playerRole;
 	public bool IsMaster => _playerRole == Roles.Master;
@@ -81,15 +62,8 @@ public partial class GameStateManager : Node
 	public bool GameStarted => _gameStarted;
 	public int RoundNumber => _roundNumber;
 
-	/// <summary>
-	/// Check if player can currently input (click color buttons)
-	/// </summary>
-	public bool CanPlayerInput => _currentState == GameState.PlayerTurn || 
-	                              (_currentState == GameState.BuildingSequence && IsMaster);
-
-	#endregion
-
-	#region State Management
+	public bool CanPlayerInput => _currentState == GameState.PlayerTurn ||
+								  (_currentState == GameState.BuildingSequence && IsMaster);
 
 	public void SetRole(string role)
 	{
@@ -138,12 +112,8 @@ public partial class GameStateManager : Node
 		_roundNumber = 0;
 	}
 
-	#endregion
-
-	#region State Checks
-
 	public bool IsInState(GameState state) => _currentState == state;
-	
+
 	public bool IsWaiting => _currentState == GameState.Waiting;
 	public bool IsBuildingSequence => _currentState == GameState.BuildingSequence;
 	public bool IsShowingPattern => _currentState == GameState.ShowingPattern;
@@ -151,6 +121,4 @@ public partial class GameStateManager : Node
 	public bool IsValidating => _currentState == GameState.Validating;
 	public bool IsRoundComplete => _currentState == GameState.RoundComplete;
 	public bool IsGameEnded => _currentState == GameState.GameEnded;
-
-	#endregion
 }

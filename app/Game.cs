@@ -6,35 +6,28 @@ using System.Threading.Tasks;
 
 public partial class Game : Control
 {
-	// Game state
 	private List<int> sequence = new();
 	private List<int> playerInput = new();
 	private int playerResponseCount = 0;
 
-	// Dependencies
 	private GameUI ui;
 	private PlayerManager playerManager;
 	private NetworkManager networkManager;
 	private GameStateManager stateManager;
 
-	// Shortcut properties for cleaner code
 	private bool IsMaster => stateManager?.IsMaster ?? false;
 	private bool CanInput => stateManager?.CanPlayerInput ?? false;
 	private int RoundNumber => stateManager?.RoundNumber ?? 0;
 
 	public override void _Ready()
 	{
-		// Initialize UI manager
 		ui = new GameUI(this);
 		
-		// Initialize player manager
 		playerManager = new PlayerManager(ui.PlayersList);
 
-		// Initialize state manager (create local instance if not autoloaded)
 		stateManager = new GameStateManager();
 		AddChild(stateManager);
 
-		// Get network manager
 		if (GetTree().Root.HasNode("NetworkManager"))
 		{
 			networkManager = GetTree().Root.GetNode<NetworkManager>("NetworkManager");
@@ -42,7 +35,6 @@ public partial class Game : Control
 			ConnectNetworkSignals();
 		}
 
-		// Connect button signals
 		ConnectButtonSignals();
 		ConnectColorButtons();
 		
@@ -52,7 +44,6 @@ public partial class Game : Control
 
 	public override void _ExitTree()
 	{
-		// Disconnect network signals to prevent errors when Game is freed but NetworkManager persists
 		if (networkManager != null)
 		{
 			networkManager.ShowPattern -= OnShowPattern;
@@ -87,8 +78,6 @@ public partial class Game : Control
 		
 		ui.SetupForNetworkGame(IsMaster, gameId, playerName, playerManager.PlayerCount, RoundNumber);
 		
-		// Request the full player list from the server after a short delay
-		// to ensure connection is fully established
 		if (networkManager != null)
 		{
 			CallDeferred(nameof(RequestPlayerList));
@@ -134,7 +123,6 @@ public partial class Game : Control
 
 	}
 
-	// Handler for round changed (master builds sequence, player waits)
 	private void OnRoundChanged(int newRoundNumber)
 	{
 
@@ -142,12 +130,10 @@ public partial class Game : Control
 		
 		ui.SetRoundInfoText(RoundNumber);
 
-		// Clear feedback from previous round
 		playerManager.ClearAllFeedback();
 
 		if (IsMaster)
 		{
-			// Master prepares to build sequence for this round
 			sequence.Clear();
 			playerInput.Clear();
 			playerResponseCount = 0;
@@ -158,26 +144,21 @@ public partial class Game : Control
 		}
 		else
 		{
-			// Player waits for pattern
 			stateManager.ChangeState(GameState.Waiting);
 			ui.SetInfoText($"Round {RoundNumber}\nWaiting for master...");
 		}
 	}
 
-	// Handler for when pattern is received from server (players only)
 	private void OnShowPattern(int[] pattern, int roundNumber)
 	{
 		ReceiveSequence(pattern);
 	}
 
-	// Handler for player submission result from server
 	public void OnPlayerSubmitted(string playerNameReceived, bool isCorrect, int pointsEarned, int totalScore)
 	{
-		// Check if Game scene is still valid
 		if (!IsInsideTree() || IsQueuedForDeletion())
 			return;
 
-		// Get current player name from NetworkManager
 		string currentPlayerName = networkManager != null ? networkManager.PlayerName : "";
 		
 		if (currentPlayerName == playerNameReceived)
@@ -190,12 +171,10 @@ public partial class Game : Control
 			{
 				ui.SetInfoText($"❌ Wrong! (Total: {totalScore})");
 			}
-			// Disable player input until next turn
 			stateManager.ChangeState(GameState.RoundComplete);
 			DisablePlayerButtons();
 		}
 
-		// Update player list with feedback using PlayerManager
 		playerManager.SetPlayerFeedback(playerNameReceived, isCorrect);
 
 		if (IsMaster)
@@ -212,10 +191,8 @@ public partial class Game : Control
 		}
 	}
 
-	// Handler for game ended signal from server
 	public void OnGameEnded(string leaderboardJson)
 	{
-		// Check if Game scene is still valid
 		if (!IsInsideTree() || IsQueuedForDeletion())
 			return;
 
@@ -244,7 +221,6 @@ public partial class Game : Control
 		ui.SetInfoText($"🏁 GAME FINISHED!\nWinner: {winner} ({bestScore}pts)");
 		stateManager.EndGame();
 
-		// Find current player's score
 		string currentPlayerName = networkManager != null ? networkManager.PlayerName : "";
 		int playerScore = 0;
 		foreach (var entry in leaderboard)
@@ -257,8 +233,6 @@ public partial class Game : Control
 			}
 		}
 
-		// Store leaderboard data for ResultPanel
-		// Create instance if not exists (fallback if Autoload not configured)
 		if (ResultPanelData.Instance == null)
 		{
 			var resultData = new ResultPanelData();
@@ -266,7 +240,6 @@ public partial class Game : Control
 		}
 		ResultPanelData.Instance.LeaderboardJson = leaderboardJson;
 
-		// Load ResultPanel scene with deferred call
 		GetTree().CallDeferred("change_scene_to_file", "res://ResultPanel.tscn");
 	}
 
@@ -279,7 +252,6 @@ public partial class Game : Control
 		}
 	}
 
-	// Show sequence
 	private async Task PlaySequence()
 	{
 		stateManager.ChangeState(GameState.ShowingPattern);
@@ -292,7 +264,6 @@ public partial class Game : Control
 		if (IsMaster)
 		{
 			ui.SetInfoText("Starting round...");
-			// Le serveur envoie automatiquement le pattern via StartRound
 			await Task.Delay(1000);
 			ui.SetInfoText("Waiting for players...");
 		}
@@ -303,26 +274,20 @@ public partial class Game : Control
 		}
 	}
 
-	// Note: Le serveur génère maintenant automatiquement la séquence
-	// Le master démarre simplement le round avec StartGame() ou NextRound()
 
-	// Flash a button
 	private async Task FlashButton(int index)
 	{
 		ColorButton btn = ui.GetColorButton(index);
 		if (btn == null)
 			return;
 
-		// Enable button
 		btn.Disabled = false;
 		await ToSignal(GetTree().CreateTimer(0.5f), "timeout");
 
-		// Disable button
 		btn.Disabled = true;
 		await ToSignal(GetTree().CreateTimer(0.2f), "timeout");
 	}
 
-	// Flash only player buttons with the correct index
 	private async Task FlashPlayerButton(int index)
 	{
 		ColorButton btn = ui.GetColorButton(index);
@@ -330,11 +295,9 @@ public partial class Game : Control
 			return;
 
 		float flashTime = 0.5f;
-		// Enable button
 		btn.Disabled = false;
 		await ToSignal(GetTree().CreateTimer(flashTime), "timeout");
 
-		// Disable button
 		btn.Disabled = true;
 		await ToSignal(GetTree().CreateTimer(flashTime), "timeout");
 	}
@@ -379,12 +342,10 @@ public partial class Game : Control
 		if (networkManager == null)
 			return;
 
-		// TODO: Calculer le vrai temps de réaction si nécessaire
-		long reactionTimeMs = 1000; // Temps par défaut
+		long reactionTimeMs = 1000;
 		networkManager.SubmitAttempt(answer, reactionTimeMs);
 	}
 
-	// Public method to receive sequence from server (for players)
 	public void ReceiveSequence(int[] seq)
 	{
 		if (IsMaster)
@@ -402,7 +363,6 @@ public partial class Game : Control
 		foreach (int index in sequence)
 			await FlashPlayerButton(index);
 
-		// Enable buttons for player to respond
 		ui.EnableGameButtons();
 		ui.SetInfoText("Your turn 🎯");
 		stateManager.ChangeState(GameState.PlayerTurn);
@@ -462,8 +422,7 @@ public partial class Game : Control
 			return;
 		}
 
-		// TODO: Calculer le vrai temps de réaction si nécessaire
-		long reactionTimeMs = 2000; // Temps par défaut
+		long reactionTimeMs = 2000;
 		networkManager.SubmitAttempt(playerInput.ToArray(), reactionTimeMs);
 		ui.SetInfoText("Answer sent!\nWaiting for validation...");
 	}
@@ -480,32 +439,25 @@ public partial class Game : Control
 
 	public void OnPlayerJoined(string playerName)
 	{
-		// Check if Game scene is still valid
 		if (!IsInsideTree() || IsQueuedForDeletion())
 			return;
 
-		// The server will send the complete player list with roles via PlayerListReceived
-		// so we don't need to manually add players here - just update the UI
 
 		ui.SetInfoText($"✅ {playerName} joined!");
 
-		// Enable start button when at least 1 other player connected (besides master)
 		if (IsMaster)
 		{
-			ui.SetStartGameDisabled(false); // Enable if we have at least 1 player
+			ui.SetStartGameDisabled(false);
 		}
 	}
 
 	public void OnPlayerListReceived(string playerListJson)
 	{
-		// Check if Game scene is still valid
 		if (!IsInsideTree() || IsQueuedForDeletion())
 			return;
 
-		// Update player list using PlayerManager
 		playerManager.UpdateFromJson(playerListJson);
 		
-		// Update UI player count
 		ui.SetPlayersCountText(playerManager.PlayerCount);
 	}
 
@@ -544,16 +496,11 @@ public partial class Game : Control
 
 			if (ui.CopyGameIdButton != null)
 			{
-				// Temporary feedback
 				string originalText = ui.CopyGameIdButton.Text;
 				ui.CopyGameIdButton.Text = "✓ Copied!";
 				await ToSignal(GetTree().CreateTimer(2.0f), "timeout");
 				ui.CopyGameIdButton.Text = originalText;
 			}
-		}
-		else
-		{
-
 		}
 	}
 }

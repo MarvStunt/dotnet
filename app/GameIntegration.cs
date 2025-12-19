@@ -3,10 +3,6 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-/// <summary>
-/// Game Integration Manager - Wires everything together
-/// This script should be attached to the Game scene root
-/// </summary>
 public partial class GameIntegration : Node2D
 {
     private Game gameLogic;
@@ -16,7 +12,6 @@ public partial class GameIntegration : Node2D
 
     public override void _Ready()
     {
-        // Get references
         gameLogic = GetNode<Game>(".");
 
         try
@@ -25,7 +20,6 @@ public partial class GameIntegration : Node2D
         }
         catch
         {
-            // If ResultPanel script is not attached, get as Panel
             var panelNode = GetNode<Panel>("ResultPanel");
             if (panelNode is ResultPanel rp)
                 resultPanel = rp;
@@ -43,10 +37,8 @@ public partial class GameIntegration : Node2D
         }
         catch
         {
-            // Optional status label
         }
 
-        // Connect network signals if in network mode
         if (networkManager != null && networkManager.IsConnected)
         {
             ConnectNetworkSignals();
@@ -56,7 +48,6 @@ public partial class GameIntegration : Node2D
 
     private void ConnectNetworkSignals()
     {
-        // Use weak reference to avoid memory leaks
         networkManager.Connect(
             NetworkManager.SignalName.ShowPattern,
             Callable.From<int[], int>(OnShowPattern)
@@ -74,33 +65,21 @@ public partial class GameIntegration : Node2D
 
     }
 
-    /// <summary>
-    /// Called when pattern is received from server (for players)
-    /// </summary>
     private void OnShowPattern(int[] pattern, int roundNumber)
     {
         gameLogic.ReceiveSequence(pattern);
     }
 
-    /// <summary>
-    /// Called when server sends player submission result
-    /// </summary>
     private void OnPlayerSubmitted(string playerName, bool isCorrect, int pointsEarned, int totalScore)
     {
         gameLogic.OnPlayerSubmitted(playerName, isCorrect, pointsEarned, totalScore);
     }
 
-    /// <summary>
-    /// Called when game ends
-    /// </summary>
     private void OnGameEnded(string leaderboardJson)
     {
         gameLogic.OnGameEnded(leaderboardJson);
     }
 
-    /// <summary>
-    /// Helper method to get game mode info
-    /// </summary>
     public void PrintGameInfo()
     {
         if (networkManager == null)
@@ -110,7 +89,6 @@ public partial class GameIntegration : Node2D
 
     }
 
-    // Call this from debugger: PrintGameInfo()
     public override void _Input(InputEvent @event)
     {
         if (@event is InputEventKey keyEvent)

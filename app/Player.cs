@@ -1,9 +1,6 @@
 using Godot;
 using System;
 
-/// <summary>
-/// Simple Player model to centralize player-related data and label handling
-/// </summary>
 public class Player
 {
     public string Name { get; set; }
@@ -31,7 +28,6 @@ public class Player
         return IsMaster ? new Color(1, 0.84f, 0, 1) : new Color(0.2f, 1, 0.4f, 1);
     }
 
-    // Apply standard styling to a provided Label and keep a reference
     public void ApplyLabelStyle(Label label)
     {
         Label = label;
@@ -43,7 +39,6 @@ public class Player
         Label.HorizontalAlignment = HorizontalAlignment.Left;
     }
 
-    // Set feedback on the label: null = reset, true = correct, false = incorrect
     public void SetFeedback(bool? correct)
     {
         if (Label == null)
@@ -68,13 +63,11 @@ public class Player
         }
     }
 
-    // Compare player by name
     public bool MatchesName(string playerName)
     {
         return Name == playerName;
     }
 
-    // Compare two players by name
     public bool Equals(Player other)
     {
         if (other == null) return false;

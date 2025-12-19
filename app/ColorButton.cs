@@ -10,10 +10,8 @@ public partial class ColorButton : Button
 
 	public override void _Ready()
 	{
-		// Hide text
 		Text = "";
 
-		// Set button colors using theme overrides
 		var styleBox = new StyleBoxFlat();
 		styleBox.BgColor = ButtonColor;
 		styleBox.SetCornerRadiusAll(8);

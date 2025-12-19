@@ -2,9 +2,6 @@ using Godot;
 using System;
 using System.Collections.Generic;
 
-/// <summary>
-/// Result Panel - Displays final leaderboard for all players
-/// </summary>
 public partial class ResultPanel : Panel
 {
 	private Label titleLabel;
@@ -15,16 +12,13 @@ public partial class ResultPanel : Panel
 
 	public override void _Ready()
 	{
-		// Get child nodes
 		titleLabel = GetNode<Label>("ResultMargin/ResultVBox/TitleLabel");
 		messageLabel = GetNode<Label>("ResultMargin/ResultVBox/MessageLabel");
 		leaderboardVBox = GetNode<VBoxContainer>("ResultMargin/ResultVBox/LeaderboardContainer/LeaderboardMargin/LeaderboardVBox");
 		backToHubButton = GetNode<Button>("ResultMargin/ResultVBox/Buttons/BackToHubButton");
 
-		// Connect button signals
 		backToHubButton.Pressed += OnBackToHubPressed;
 
-		// Display the leaderboard if data is available
 		if (ResultPanelData.Instance != null && !string.IsNullOrEmpty(ResultPanelData.Instance.LeaderboardJson))
 		{
 			var json = new Json();
@@ -32,39 +26,28 @@ public partial class ResultPanel : Panel
 			var leaderboard = (Godot.Collections.Array)json.Data;
 			ShowLeaderboard(leaderboard);
 			
-			// Clear data after use
 			ResultPanelData.Instance.Clear();
 		}
 		else
 		{
-			// No data available, return to Hub instead of displaying error
-			// Use CallDeferred to avoid changing scene during _Ready
 			GetTree().CallDeferred("change_scene_to_file", "res://Hub.tscn");
 		}
 	}
 
-	/// <summary>
-	/// Set if the player is master (affects button availability)
-	/// </summary>
 	public void SetIsMaster(bool master)
 	{
 		isMaster = master;
 	}
 
-	/// <summary>
-	/// Show final leaderboard for everyone (both master and players)
-	/// </summary>
 	public void ShowLeaderboard(Godot.Collections.Array leaderboard)
 	{
 		titleLabel.Text = "🏁 GAME FINISHED!";
 		
-		// Clear previous leaderboard entries
 		foreach (Node child in leaderboardVBox.GetChildren())
 		{
 			child.QueueFree();
 		}
 
-		// Get current player name if available (for highlighting)
 		string currentPlayerName = null;
 		var root = GetTree().Root;
 		if (root.HasNode("NetworkManager"))
@@ -73,7 +56,6 @@ public partial class ResultPanel : Panel
 			currentPlayerName = networkManager.PlayerName;
 		}
 
-		// Filter leaderboard to exclude master players, then display
 		int position = 1;
 		foreach (var entry in leaderboard)
 		{
@@ -82,13 +64,11 @@ public partial class ResultPanel : Panel
 			int score = (int)playerData["score"].AsInt64();
 			string role = playerData.ContainsKey("role") ? playerData["role"].AsString() : Roles.Player;
 
-			// Skip master players in the leaderboard
 			if (Roles.IsMaster(role))
 			{
 				continue;
 			}
 
-			// Create a label for each player
 			Label playerLabel = new Label();
 			string medalEmoji = position switch
 			{
@@ -100,10 +80,9 @@ public partial class ResultPanel : Panel
 
 			playerLabel.Text = $"{medalEmoji} {playerName}: {score} pts";
 			
-			// Highlight current player
 			if (playerName == currentPlayerName)
 			{
-				playerLabel.AddThemeColorOverride("font_color", new Color(0.2f, 1, 0.4f, 1)); // Green for current player
+				playerLabel.AddThemeColorOverride("font_color", new Color(0.2f, 1, 0.4f, 1));
 			}
 			else
 			{
@@ -121,23 +100,19 @@ public partial class ResultPanel : Panel
 		Visible = true;
 	}
 
-	/// <summary>
-	/// Get color based on leaderboard position
-	/// </summary>
 	private Color GetPlayerColor(int position)
 	{
 		return position switch
 		{
-			1 => new Color(1, 0.84f, 0, 1), // Gold
-			2 => new Color(0.75f, 0.75f, 0.75f, 1), // Silver
-			3 => new Color(0.8f, 0.5f, 0.2f, 1), // Bronze
-			_ => new Color(0.7f, 0.7f, 0.7f, 1) // White
+			1 => new Color(1, 0.84f, 0, 1),
+			2 => new Color(0.75f, 0.75f, 0.75f, 1),
+			3 => new Color(0.8f, 0.5f, 0.2f, 1),
+			_ => new Color(0.7f, 0.7f, 0.7f, 1)
 		};
 	}
 
 	private void OnBackToHubPressed()
 	{
-		// Return to Hub scene
 		GetTree().ChangeSceneToFile("res://Hub.tscn");
 	}
 }

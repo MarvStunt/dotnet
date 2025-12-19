@@ -3,9 +3,6 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-/// <summary>
-/// Hub scene - Create or Join a game
-/// </summary>
 public partial class Hub : Control
 {
 	private NetworkManager networkManager;
@@ -20,11 +17,9 @@ public partial class Hub : Control
 
 	public override void _Ready()
 	{
-		// Try to find network manager
 		if (!IsNodeReady())
 			return;
 
-		// Get network manager - create if doesn't exist
 		if (GetTree().Root.HasNode("NetworkManager"))
 		{
 			networkManager = GetTree().Root.GetNode<NetworkManager>("NetworkManager");
@@ -32,12 +27,10 @@ public partial class Hub : Control
 		else
 		{
 			networkManager = new NetworkManager();
-			// Use CallDeferred to avoid "Parent node is busy setting up children" error
 			GetTree().Root.CallDeferred("add_child", networkManager);
 			networkManager.Name = "NetworkManager";
 		}
 
-		// Find UI elements
 		playerNameInputCreate = GetNode<LineEdit>("MainVBox/Content/CreateGameCard/CreateGameMargin/CreateGameVBox/PlayerNameInput_Create");
 		createGameButton = GetNode<Button>("MainVBox/Content/CreateGameCard/CreateGameMargin/CreateGameVBox/CreateGameButton");
 		gameIdInput = GetNode<LineEdit>("MainVBox/Content/JoinGameCard/JoinGameMargin/JoinGameVBox/GameIdInput");
@@ -45,11 +38,9 @@ public partial class Hub : Control
 		joinGameButton = GetNode<Button>("MainVBox/Content/JoinGameCard/JoinGameMargin/JoinGameVBox/JoinGameButton");
 		statusLabel = GetNode<Label>("MainVBox/StatusPanel/StatusMargin/StatusLabel");
 
-		// Connect buttons
 		createGameButton.Pressed += OnCreateGamePressed;
 		joinGameButton.Pressed += OnJoinGamePressed;
 
-		// Connect network manager signals
 		networkManager.OperationFailed += OnOperationFailed;
 		networkManager.GameCreated += OnGameCreated;
 		networkManager.PlayerJoinedGame += OnPlayerJoinedGame;
@@ -59,7 +50,6 @@ public partial class Hub : Control
 
 	public override void _ExitTree()
 	{
-		// Disconnect signals to prevent errors when Hub is freed but NetworkManager persists
 		if (networkManager != null)
 		{
 			networkManager.OperationFailed -= OnOperationFailed;
@@ -70,13 +60,11 @@ public partial class Hub : Control
 
 	private void OnOperationFailed(string error, string invocationId)
 	{
-		// Check if Hub is still valid (not disposed/freed)
 		if (!IsInsideTree() || statusLabel == null || IsQueuedForDeletion())
 			return;
 		
 		statusLabel.Text = $"❌ Error: {error}";
 
-		// Réactiver les boutons
 		if (createGameButton != null && !createGameButton.IsQueuedForDeletion())
 			createGameButton.Disabled = false;
 		if (joinGameButton != null && !joinGameButton.IsQueuedForDeletion())
@@ -91,7 +79,6 @@ public partial class Hub : Control
 		if (!isWaitingForResponse || currentOperation != "create")
 			return;
 
-		// Check if Hub is still valid
 		if (!IsInsideTree() || IsQueuedForDeletion())
 			return;
 
@@ -100,17 +87,13 @@ public partial class Hub : Control
 		
 		isWaitingForResponse = false;
 
-		// Changer de scène seulement si succès
-		GetTree().CallDeferred("change_scene_to_file", "res://Game.tscn");
 	}
 
 	private void OnPlayerJoinedGame(bool success)
 	{
-		// Only process if we're actually waiting for a join response
 		if (!isWaitingForResponse || currentOperation != "join")
 			return;
 
-		// Check if Hub is still valid
 		if (!IsInsideTree() || IsQueuedForDeletion())
 			return;
 
@@ -121,8 +104,6 @@ public partial class Hub : Control
 		{
 			if (statusLabel != null && !statusLabel.IsQueuedForDeletion())
 				statusLabel.Text = "✅ Joined game successfully!";
-			// Changer de scène seulement si succès
-			GetTree().CallDeferred("change_scene_to_file", "res://Game.tscn");
 		}
 		else
 		{
@@ -155,7 +136,6 @@ public partial class Hub : Control
 		{
 			if (!networkManager.IsConnected)
 			{
-				// TODO: Vérifier que l'URL du serveur dans NetworkManager est correcte
 				bool connected = await networkManager.ConnectToServer();
 				if (!connected)
 				{
@@ -173,7 +153,6 @@ public partial class Hub : Control
 			networkManager.PlayerRole = Roles.Master;
 			networkManager.CreateGame(playerName);
 
-			// Les signaux OnGameCreated ou OnOperationFailed géreront la suite
 		}
 		catch (Exception ex)
 		{
@@ -230,7 +209,6 @@ public partial class Hub : Control
 			networkManager.PlayerRole = Roles.Player;
 			networkManager.JoinGame(gameId, playerName);
 
-			// Les signaux OnGameCreated ou OnOperationFailed géreront la suite
 		}
 		catch (Exception ex)
 		{
