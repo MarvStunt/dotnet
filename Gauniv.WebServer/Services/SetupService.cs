@@ -61,12 +61,20 @@ namespace Gauniv.WebServer.Services
                     throw new Exception("ApplicationDbContext is null");
                 }
 
-                var r = userSignInManager?.CreateAsync(new User()
+                var testUser = new User()
                 {
                     UserName = "test@test.com",
                     Email = "test@test.com",
                     EmailConfirmed = true
-                }, "password").Result;
+                };
+                
+                var r = userSignInManager?.CreateAsync(testUser, "password").Result;
+                
+                // Assigner le rôle "User" à l'utilisateur test
+                if (r?.Succeeded == true)
+                {
+                    userSignInManager?.AddToRoleAsync(testUser, "User").Wait();
+                }
 
                 // ....
 

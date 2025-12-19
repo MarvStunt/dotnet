@@ -124,6 +124,10 @@ namespace Gauniv.WebServer.Areas.Identity.Pages.Account
                 {
                     _logger.LogInformation("User created a new account with password.");
 
+                    // Assigner le rôle "User" par défaut
+                    await _userManager.AddToRoleAsync(user, "User");
+                    _logger.LogInformation("Role 'User' assigned to new user.");
+
                     var userId = await _userManager.GetUserIdAsync(user);
                     var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
                     code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
