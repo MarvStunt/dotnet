@@ -100,6 +100,13 @@ En tant qu'administrateur :
     - Le nombre d'utilisateurs actifs dans les 30 derniers jours
     - Les jeux les plus populaires (par nombre d'achats)
 
+Voici les comptes par défaut créé:
+- Compte administrateur
+   - Email: `admin@admin.com`
+   - Mot de passe: `Admin123!`
+- Compte utilisateur lambda
+   - Email: `user@gauniv.com`
+   - Mot de passe:  `User123!`
 
 
 ### 4. Client MAUI
