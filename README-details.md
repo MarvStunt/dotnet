@@ -100,7 +100,7 @@ En tant qu'administrateur :
     - Le nombre d'utilisateurs actifs dans les 30 derniers jours
     - Les jeux les plus populaires (par nombre d'achats)
 
-Voici les comptes par défaut créé:
+Voici les comptes par défaut créés:
 - Compte administrateur
    - Email: `admin@admin.com`
    - Mot de passe: `Admin123!`
