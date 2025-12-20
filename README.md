@@ -16,6 +16,8 @@ Jeu godot
    - Localiser la ligne 10 :
    ```csharp
    private string serverUrl = "ws://localhost:5000/gamehub";
+   // Exemple
+   private string serverUrl = "ws://172.10.2.5:5000/gamehub";
    ```
    - Modifier l'adresse par l'adresse de la machine hôte
 
